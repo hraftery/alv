@@ -1,0 +1,28 @@
+include:
+  - compose.yml
+
+services:
+  alloy:
+    ports:
+      - "12345:12345"
+    command: run --server.http.listen-addr=0.0.0.0:12345 /etc/alloy/config.alloy
+    volumes:
+      - nginx-logs:/var/log/nginx:ro
+
+  nginx:
+    image: nginx:latest
+    # Remove the pre-wired access.log --> STDOUT and
+    # error.log --> STDERR links and let nginx recreate them.
+    entrypoint: ["/bin/sh", "-c", "rm -f /var/log/nginx/* && exec nginx -g 'daemon off;'"]
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - nginx-logs:/var/log/nginx
+
+  traffic-gen:
+    image: alpine:latest
+    command: sh -c "while true; do wget -q -O /dev/null http://nginx/; sleep 1; done"
+    depends_on:
+      - nginx
+
+volumes:
+  nginx-logs:
