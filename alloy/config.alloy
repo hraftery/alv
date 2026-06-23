@@ -4,7 +4,23 @@ local.file_match "access_logs" {
 
 loki.source.file "access_logs" {
   targets    = local.file_match.access_logs.targets
+  forward_to = [loki.process.parse_access_log.receiver]
+}
+
+loki.process "parse_access_log" {
   forward_to = [loki.write.default.receiver]
+
+  stage.regex {
+    expression = `^(?P<server_name>\S+) (?P<remote_addr>\S+) - (?P<remote_user>\S+) \[(?P<time_local>[^\]]+)\] "(?P<request>[^"]*)" (?P<status>\d+) (?P<body_bytes_sent>\d+) "(?P<http_referer>[^"]*)" "(?P<http_user_agent>[^"]*)"`
+  }
+
+  stage.labels {
+    values = {
+      server_name = "",
+      status      = "",
+      remote_addr = "",
+    }
+  }
 }
 
 loki.write "default" {
