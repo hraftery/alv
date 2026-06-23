@@ -1,10 +1,17 @@
 local.file_match "access_logs" {
   path_targets = [{"__path__" = "/var/log/nginx/access.log"}]
 }
+local.file_match "error_logs" {
+  path_targets = [{"__path__" = "/var/log/nginx/error.log"}]
+}
 
 loki.source.file "access_logs" {
   targets    = local.file_match.access_logs.targets
   forward_to = [loki.process.parse_access_log.receiver]
+}
+loki.source.file "error_logs" {
+  targets    = local.file_match.error_logs.targets
+  forward_to = [loki.process.parse_error_log.receiver]
 }
 
 loki.process "parse_access_log" {
@@ -14,6 +21,11 @@ loki.process "parse_access_log" {
     expression = `^(?P<server_name>\S+) (?P<remote_addr>\S+) - (?P<remote_user>\S+) \[(?P<time_local>[^\]]+)\] "(?P<request>[^"]*)" (?P<status>\d+) (?P<body_bytes_sent>\d+) "(?P<http_referer>[^"]*)" "(?P<http_user_agent>[^"]*)"`
   }
 
+  stage.timestamp {
+    source = "time_local"
+    format = "02/Jan/2006:15:04:05 -0700"
+  }
+
   stage.labels {
     values = {
       server_name = "",
@@ -21,6 +33,28 @@ loki.process "parse_access_log" {
     }
   }
 }
+loki.process "parse_error_log" {
+  forward_to = [loki.write.default.receiver]
+
+  // Typical line looks like:
+  //   2026/06/24 10:30:00 [error] 7#7: *1 open() "..." failed, client: 172.18.0.5, ...
+  // We skip over the part between [error] and client: for visualisation purposes.
+  stage.regex {
+    expression = `^(?P<timestamp>\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) \[(?P<level>\w+)\] .+client: (?P<remote_ip>[^,]+),`
+  }
+
+  stage.timestamp {
+    source = "timestamp"
+    format = "2006/01/02 15:04:05"
+  }
+
+  stage.labels {
+    values = {
+      level = "",
+    }
+  }
+}
+
 
 loki.write "default" {
   endpoint {
