@@ -18,7 +18,6 @@ loki.process "parse_access_log" {
     values = {
       server_name = "",
       status      = "",
-      remote_addr = "",
     }
   }
 }
