@@ -30,6 +30,12 @@ services:
       - ./:/seed:ro
       - nginx-logs:/var/log/nginx
 
+  grafana:
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+
   traffic-gen:
     image: alpine:latest
     command: sh -c "while true; do wget -q -O /dev/null http://nginx/; sleep 1; done"
