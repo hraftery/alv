@@ -6,7 +6,8 @@ services:
     # Expose the debug port and set addr to 0.0.0.0 so it can be accessed from outside docker.
     ports:
       - "12345:12345"
-    command: run --server.http.listen-addr=0.0.0.0:12345 /etc/alloy/config.alloy
+    # Entrypoint so we can insert a delay to give nginx time to set up the log files.
+    entrypoint: ["/bin/sh", "-c", "sleep 2 && exec alloy run --server.http.listen-addr=0.0.0.0:12345 /etc/alloy/config.alloy"]
     volumes:
       - nginx-logs:/var/log/nginx:ro
 
