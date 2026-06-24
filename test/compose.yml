@@ -14,15 +14,24 @@ services:
   log-init:
     image: python:3-alpine
     working_dir: /seed
-    command: sh -c "[ -f initial_access.log ] || python3 generate_logs.py"
+    command: sh -c "
+      { [ -f initial_access.log ] || python3 generate_access_logs.py; } &&
+      { [ -f initial_error.log  ] || python3 generate_error_logs.py;  }"
     volumes:
       - ./:/seed
 
   nginx:
     image: nginx:latest
     # Remove the pre-wired access.log --> STDOUT and error.log --> STDERR
-    # symbolic links, then pre-populate from initial_access.log.
-    entrypoint: ["/bin/sh", "-c", "rm -f /var/log/nginx/* && cp /seed/initial_access.log /var/log/nginx/access.log && exec nginx -g 'daemon off;'"]
+    # symbolic links, then pre-populate from seed files.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >-
+        rm -f /var/log/nginx/* &&
+        cp /seed/initial_access.log /var/log/nginx/access.log &&
+        cp /seed/initial_error.log  /var/log/nginx/error.log &&
+        exec nginx -g 'daemon off;'
     depends_on:
       log-init:
         condition: service_completed_successfully
