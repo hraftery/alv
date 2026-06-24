@@ -1,0 +1,4 @@
+# See https://github.com/hraftery/empty_dir
+echo "empty_dir: Removing gitkeep files"
+find . -type f -name "gitkeep" -exec rm {} \; -exec git update-index --assume-unchanged {} \;
+
