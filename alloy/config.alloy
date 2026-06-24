@@ -32,13 +32,24 @@ loki.process "parse_access_log" {
       status      = "",
     }
   }
+
+  stage.structured_metadata {
+    values = {
+      remote_addr     = "",
+      remote_user     = "",
+      request         = "",
+      body_bytes_sent = "",
+      http_referer    = "",
+      http_user_agent = "",
+    }
+  }
 }
 loki.process "parse_error_log" {
   forward_to = [loki.write.default.receiver]
 
   // Typical line looks like:
   //   2026/06/24 10:30:00 [error] 7#7: *1 open() "..." failed, client: 172.18.0.5, ...
-  // We skip over the part between [error] and client: for visualisation purposes.
+  // For visualisation purposes, we skip over the part between '[error]' and 'client:' .
   stage.regex {
     expression = `^(?P<timestamp>\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) \[(?P<level>\w+)\] .+client: (?P<remote_ip>[^,]+),`
   }
