@@ -3,6 +3,7 @@ services:
     image: grafana/alloy:latest
     volumes:
       - ./alloy/config.alloy:/etc/alloy/config.alloy
+      - ./alloy/GeoLite2-City.mmdb:/etc/alloy/GeoLite2-City.mmdb:ro
     command: run /etc/alloy/config.alloy
     depends_on:
       - loki

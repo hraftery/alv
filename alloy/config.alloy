@@ -43,6 +43,29 @@ loki.process "parse_access_log" {
       http_user_agent = "",
     }
   }
+
+  // GeoIP enrichment. Requires a MaxMind GeoLite2-City database from https://dev.maxmind.com/geoip/geolite2-free-geolocation-data
+  stage.geoip {
+    source  = "remote_addr"
+    db      = "/etc/alloy/GeoLite2-City.mmdb"
+    db_type = "city"
+  }
+
+  // Country code as a stream label so it can be used in metric query by() clauses.
+  // ~250 possible values so cardinality is fine.
+  stage.labels {
+    values = {
+      geoip_country_code = "",
+    }
+  }
+
+  stage.structured_metadata {
+    values = {
+      geoip_country_name = "",
+      geoip_latitude     = "",
+      geoip_longitude    = "",
+    }
+  }
 }
 loki.process "parse_error_log" {
   forward_to = [loki.write.default.receiver]

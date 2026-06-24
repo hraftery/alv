@@ -1,0 +1,338 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {"type": "grafana", "uid": "-- Grafana --"},
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "nginx/apache access log overview — hit history, response codes, geo distribution, top referrers and user agents",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {"type": "loki", "uid": "loki"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "req/h",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {"legend": false, "tooltip": false, "viz": false},
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {"type": "linear"},
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {"group": "A", "mode": "none"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+      "id": 1,
+      "maxDataPoints": 20,
+      "options": {
+        "legend": {"calcs": ["sum"], "displayMode": "table", "placement": "right", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "loki", "uid": "loki"},
+          "expr": "sum(rate({server_name=~\"$server\"}[$__interval])) by (server_name) * 3600",
+          "legendFormat": "{{server_name}}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Hit History",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "loki", "uid": "loki"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "req/h",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {"legend": false, "tooltip": false, "viz": false},
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {"type": "linear"},
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {"group": "A", "mode": "none"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byRegexp", "options": "^2"},
+            "properties": [{"id": "color", "value": {"fixedColor": "#73BF69", "mode": "fixed"}}]
+          },
+          {
+            "matcher": {"id": "byRegexp", "options": "^3"},
+            "properties": [{"id": "color", "value": {"fixedColor": "#FADE2A", "mode": "fixed"}}]
+          },
+          {
+            "matcher": {"id": "byRegexp", "options": "^4"},
+            "properties": [{"id": "color", "value": {"fixedColor": "#FF9830", "mode": "fixed"}}]
+          },
+          {
+            "matcher": {"id": "byRegexp", "options": "^5"},
+            "properties": [{"id": "color", "value": {"fixedColor": "#F2495C", "mode": "fixed"}}]
+          }
+        ]
+      },
+      "gridPos": {"h": 8, "w": 10, "x": 0, "y": 8},
+      "id": 2,
+      "maxDataPoints": 20,
+      "options": {
+        "legend": {"calcs": ["sum"], "displayMode": "table", "placement": "right", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "loki", "uid": "loki"},
+          "expr": "sum(rate({server_name=~\"$server\", status=~\".+\"}[$__interval])) by (status) * 3600",
+          "legendFormat": "{{status}}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Response Codes",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "loki", "uid": "loki"},
+      "description": "Geographic origin of requests. Mapping by MaxMind GeoLite2 City database.",
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 8, "w": 14, "x": 10, "y": 8},
+      "id": 3,
+      "options": {
+        "basemap": {"config": {}, "name": "Basemap", "type": "default"},
+        "controls": {
+          "mouseWheelZoom": true,
+          "showAttribution": true,
+          "showDebug": false,
+          "showMeasure": false,
+          "showScale": false,
+          "showZoom": true
+        },
+        "layers": [
+          {
+            "config": {
+              "showLegend": false,
+              "style": {
+                "color": {"fixed": "dark-green"},
+                "opacity": 0.6,
+                "rotation": {"fixed": 0, "max": 360, "min": -360, "mode": "mod"},
+                "size": {"field": "Value #A", "min": 3, "max": 15, "mode": "field"},
+                "symbol": {"fixed": "img/icons/marker/circle.svg", "mode": "fixed"},
+                "symbolAlign": {"h": "center", "v": "center"},
+                "textConfig": {"fontSize": 12, "offsetX": 0, "offsetY": 0, "textAlign": "center", "textBaseline": "middle"}
+              }
+            },
+            "location": {
+              "mode": "lookup",
+              "lookup": "geoip_country_code",
+              "gazetteer": "public/gazetteer/countries.json"
+            },
+            "name": "Request origins",
+            "tooltip": true,
+            "type": "markers"
+          }
+        ],
+        "tooltip": {"mode": "details"},
+        "view": {"allLayers": true, "id": "zero", "lat": 30, "lon": 10, "zoom": 1}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "loki", "uid": "loki"},
+          "expr": "sum by (geoip_country_code) (count_over_time({server_name=~\"$server\", geoip_country_code=~\".+\"}[$__range]))",
+          "legendFormat": "{{geoip_country_code}}",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "Request Origins",
+      "type": "geomap"
+    },
+    {
+      "datasource": {"type": "loki", "uid": "loki"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {
+            "align": "auto",
+            "cellOptions": {"type": "auto"},
+            "filterable": true,
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "http_referer"},
+            "properties": [
+              {"id": "displayName", "value": "Referrer"},
+              {"id": "custom.width", "value": 450},
+              {"id": "links", "value": []}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "Value"},
+            "properties": [
+              {"id": "displayName", "value": "Requests"},
+              {"id": "custom.align", "value": "right"},
+              {"id": "custom.width", "value": 100}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "Time"},
+            "properties": [{"id": "custom.hidden", "value": true}]
+          }
+        ]
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+      "id": 4,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false},
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": [{"desc": true, "displayName": "Requests"}]
+      },
+      "targets": [
+        {
+          "datasource": {"type": "loki", "uid": "loki"},
+          "expr": "topk(20, sum by (http_referer) (count_over_time({server_name=~\"$server\"}[$__range])))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "Top Referrers",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "loki", "uid": "loki"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {
+            "align": "auto",
+            "cellOptions": {"type": "auto"},
+            "filterable": true,
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "http_user_agent"},
+            "properties": [
+              {"id": "displayName", "value": "User Agent"},
+              {"id": "custom.width", "value": 450}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "Value"},
+            "properties": [
+              {"id": "displayName", "value": "Requests"},
+              {"id": "custom.align", "value": "right"},
+              {"id": "custom.width", "value": 100}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "Time"},
+            "properties": [{"id": "custom.hidden", "value": true}]
+          }
+        ]
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+      "id": 5,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false},
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": [{"desc": true, "displayName": "Requests"}]
+      },
+      "targets": [
+        {
+          "datasource": {"type": "loki", "uid": "loki"},
+          "expr": "topk(20, sum by (http_user_agent) (count_over_time({server_name=~\"$server\"}[$__range])))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "Top User Agents",
+      "type": "table"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["nginx", "access-log", "alv"],
+  "templating": {
+    "list": [
+      {
+        "current": {"selected": true, "text": "All", "value": ["$__all"]},
+        "datasource": {"type": "loki", "uid": "loki"},
+        "definition": "",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Server",
+        "multi": true,
+        "name": "server",
+        "options": [],
+        "query": {"label": "server_name", "stream": "", "type": 1},
+        "refresh": 2,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {"from": "now-7d", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Access Log Overview",
+  "uid": "alv-access-log",
+  "version": 1
+}
