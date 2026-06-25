@@ -1,6 +1,6 @@
 services:
   alloy:
-    image: grafana/alloy:latest
+    image: grafana/alloy:v1.17.0
     volumes:
       - ./alloy/config.alloy:/etc/alloy/config.alloy
       - ./alloy/GeoLite2-City.mmdb:/etc/alloy/GeoLite2-City.mmdb:ro
@@ -13,16 +13,16 @@ services:
       - loki
 
   loki:
-    image: grafana/loki:latest
+    image: grafana/loki:3.7.3
     ports:
-      - "3100:3100"
+      - "127.0.0.1:3100:3100"
     volumes:
       - ./loki/config.yml:/etc/loki/config.yml
       - loki-data:/loki
     command: -config.file=/etc/loki/config.yml
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:13.1.0
     ports:
       - "3000:3000"
     environment:
