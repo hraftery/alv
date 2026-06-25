@@ -1,0 +1,86 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - deploy
+  workflow_dispatch:
+    inputs:
+      first_time_setup:
+        description: First time setup (skips "Start services")
+        type: boolean
+        default: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_USER: alv
+      DEPLOY_PATH: /opt/alv
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Write SSH key
+        run: |
+          install -m 600 -D /dev/null ~/.ssh/id_deploy
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy
+          echo "${{ secrets.DEPLOY_KNOWN_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Sync files
+        run: |
+          rsync -az --delete \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='test/' \
+            -e "ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes" \
+            . \
+            ${{ env.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ env.DEPLOY_PATH }}
+
+      - name: Download GeoLite2 database
+        # Download a new db every deploy. Handy way to keep up to date, and while we could check
+        # the LastModified date to avoid unnecessary replacements, the hard work is done
+        # contacting the server anyway, so the download and untar is relatively minor given how
+        # infrequently this will happen. Here's the tar command breakdown:
+        # tar -xz                    : extract and decompress gzip
+        #     --strip-components=1   : remove "GeoLite2-City_20260601" enclosing directory
+        #     -C /opt/alv/alloy/     : put it here
+        #     '*.mmdb'               : only the mmdb file, ignore the README etc.
+        run: |
+          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes \
+            ${{ env.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "curl -sL -u '${{ secrets.MAXMIND_ACCOUNT_ID }}:${{ secrets.MAXMIND_LICENSE_KEY }}' \
+              'https://download.maxmind.com/geoip/databases/GeoLite2-City/download?suffix=tar.gz' \
+              | tar -xz --strip-components=1 -C /opt/alv/alloy/ '*.mmdb'"
+      
+      - name: Import historical logs
+        if: inputs.first_time_setup
+        # Alloy is designed to monitor a file for new logs continuously. To seed the loki
+        # database with the rotated log files already on disk, we need a temporary instance
+        # that just processes the existing files. Since logs must be processed chronologically
+        # (otherwise the chunk span is too big, or we have to increase cardinality with
+        # multiple streams), concatenate all the historical logs into a single file first.
+        # The production containers will then be run, substituting the historical log file
+        # for the real access.log, and the ingestion will start. There's no great way to
+        # detect it has finished, so this is a good opportunity to manually look around to see
+        # if everything is in order. You can poll Loki's ingested line count with something
+        # like `curl -sf http://localhost:3100/metrics | grep "^loki_distributor_lines_received_total"
+        # and wait for it to settle. Grafana is also accessible, but it may take some time for
+        # the data to appear there.
+        run: |
+          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes \
+            ${{ env.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            '{ ls -tr /var/log/nginx/access.log.*.gz 2>/dev/null | xargs zcat; \
+             cat /var/log/nginx/access.log.1 2>/dev/null; } > /tmp/historical_access.log'
+          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes \
+            ${{ env.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "cd ${{ env.DEPLOY_PATH }} && HISTORICAL_LOG=/tmp/historical_access.log docker compose up -d"
+
+      - name: Start live services
+        if: ${{ !inputs.first_time_setup }}
+        # Start or restart the services without HISTORICAL_LOG set, so they run as normal.
+        run: |
+          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes \
+            ${{ env.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "cd ${{ env.DEPLOY_PATH }} && docker compose up -d"

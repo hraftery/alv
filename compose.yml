@@ -4,6 +4,10 @@ services:
     volumes:
       - ./alloy/config.alloy:/etc/alloy/config.alloy
       - ./alloy/GeoLite2-City.mmdb:/etc/alloy/GeoLite2-City.mmdb:ro
+      - /var/log/nginx:/var/log/nginx:ro
+      # Override access.log for historical import. Shadows the directory mount above.
+      # Usage: HISTORICAL_LOG=/tmp/historical_access.log docker compose run --rm alloy
+      - ${HISTORICAL_LOG:-/var/log/nginx/access.log}:/var/log/nginx/access.log:ro
     command: run /etc/alloy/config.alloy
     depends_on:
       - loki
