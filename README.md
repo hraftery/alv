@@ -32,7 +32,7 @@ python3 generate_error_logs.py    # produces error.log, error.log.1, error.log.2
 
 Both scripts accept `--help` for options (line count, date range, output file).
 
-By default they produce 10,000 lines, spread evenly over four files - the current log file and three historical log files.
+By default, `generate_access_logs.py` produces 10,000 lines and `generate_error_logs.py` produces 2000 lines. Both sets of logs are spread evenly over four files each - the current log file and three historical log files. Thus the default result is `access.log` with 2500 lines and 7500 in historical files, and `error.log` with 500 lines and 1500 in historical files.
 
 ### First Time Setup
 
@@ -48,7 +48,7 @@ And monitor the ingestion count to ensure the history has been processed:
 curl -sf http://localhost:3100/metrics | grep loki_distributor_lines_received_total
 ```
 
-With the default seed data, 7500 lines should be ingested from the history. When all are ingested, bring the system down, preserving the named volumes:
+With the default seed data, 9000 lines (7500 access logs and 1500 error logs) should be ingested from the history. When all are ingested, bring the system down, preserving the named volumes:
 
 ```sh
 docker compose -f test/compose.yml -f test/compose.historical.yml down
@@ -64,7 +64,7 @@ The live test enviornment can then be brought up:
 docker compose -f test/compose.yml up
 ```
 
-This loads the active seed data, starts a local nginx, and generates live traffic. Grafana runs with anonymous admin access (no login required).
+This loads the live seed data files, starts a local nginx, and starts generating new traffic. In the test environment, Grafana runs with anonymous admin access (no login required).
 
 ### Troubleshooting
 
