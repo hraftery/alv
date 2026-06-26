@@ -118,7 +118,7 @@ To seed the database with historical logs, run the workflow with `ingest_history
 gh workflow run deploy.yml -f ingest_history=true
 ```
 
-This syncs files, downloads the GeoLite2 database, concatenates rotated nginx logs into a single historical file, and then starts Alloy and Loki to ingest it. The "Start live services" step is skipped, giving you time to monitor the import.
+This syncs files from the `main` branch (override with `--ref branch-name`) with those on the server and downloads the GeoLite2 database as in a normal deployment. It then concatenates rotated nginx access logs it finds on the server into a historical file, and then starts Alloy and Loki to ingest it instead of the live access log.
 
 There's no great way to detect the import has finished, so this is a good opportunity to manually look around to see if everything is in order. You can poll Loki's ingested line count with something like:
 
@@ -128,7 +128,7 @@ There's no great way to detect the import has finished, so this is a good opport
 curl -sf http://localhost:3100/metrics | grep "^loki_distributor_lines_received_total"
 ```
 
-and wait for it to settle. Grafana is also accessible, but it may take some time for the data to appear there.
+and wait for it to settle. Grafana is also accessible, but it may take some time for the data to appear there. The first time you log in to Grafana the username is `admin` and the password is `admin` and you'll be prompted to change it.
 
 Once stable, a normal deployment that monitors the live access logs can be started.
 
