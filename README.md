@@ -34,9 +34,9 @@ Both scripts accept `--help` for options (line count, date range, output file).
 
 By default, `generate_access_logs.py` produces 10,000 lines and `generate_error_logs.py` produces 2000 lines. Both sets of logs are spread evenly over four files each - the current log file and three historical log files. Thus the default result is `access.log` with 2500 lines and 7500 in historical files, and `error.log` with 500 lines and 1500 in historical files.
 
-### First Time Setup
+### Ingest History
 
-Testing the first time setup feature requires the same steps as in production. First execute:
+Testing the Ingest History feature requires the same steps as in production. First execute:
 
 ```sh
 docker compose -f test/compose.yml -f test/compose.historical.yml up
@@ -68,7 +68,7 @@ This loads the live seed data files, starts a local nginx, and starts generating
 
 ### Troubleshooting
 
-The stack takes its sweet time ingesting the logs. The delay seems to be in flushing streams from memory to disk, which is partially governed by `chunk_idle_period` with a default of 30 minutes. Until Loki flushes chunks to disk, Grafana can't see them, even though they've been ingested. After about 10 seconds logs from loki with `msg="flushing stream"` start appearing, but only a subset get flushed! To check how many lines have been ingested (not necessarily flushed!), run:
+The stack takes its sweet time making new logs visible. The delay seems to be in flushing streams from memory to disk, which is partially governed by `chunk_idle_period` with a default of 30 minutes. Until Loki flushes chunks to disk, Grafana can't see them, even though they've been ingested. After about 10 seconds logs from loki with `msg="flushing stream"` start appearing, but only a subset get flushed. To check how many lines have been ingested (not necessarily flushed!), run:
 
 ```sh
 # What Alloy sent
@@ -87,24 +87,13 @@ Then, to save hours wondering why not all your logs are captured, execute this c
 curl -X POST http://localhost:3100/flush
 ```
 
-
-### Production
-
-```sh
-docker compose up -d
-```
-
-Grafana is then available at `http://localhost:3000`.
-
-The stack expects nginx is writing logs to `/var/log/nginx/access.log` and `/var/log/nginx/error.log` on the host.
-
 ## Deployment
 
 The [deploy workflow](.github/workflows/deploy.yml) rsyncs the repo to `/opt/alv` on the server, downloads a fresh GeoLite2 database, and runs `docker compose up -d`. Trigger it with the `gh` CLI:
 
 ```sh
-gh workflow run deploy.yml -f first_time_setup=true  # see below
-gh workflow run deploy.yml                           # normal deployment
+gh workflow run deploy.yml -f ingest_history=true  # see below
+gh workflow run deploy.yml                         # normal deployment
 ```
 
 It can also be triggered by pushing to the `deploy` branch.
@@ -121,16 +110,19 @@ It can also be triggered by pushing to the `deploy` branch.
   1. Create the `alv` user. Add it to the `adm` group so it can read logs created by nginx, and the `docker` group so it can run docker without sudo.
   1. Create `/opt/alv` owned by `alv`.
 
-### First time setup
+### Ingest History
 
-To seed an empty database with historical logs, run the workflow with `first_time_setup=true`:
+To seed the database with historical logs, run the workflow with `ingest_history=true`. This must be done on an empty database, such as when performing the first deployment.
 
 ```sh
-gh workflow run deploy.yml -f first_time_setup=true
+gh workflow run deploy.yml -f ingest_history=true
 ```
 
-This syncs files, downloads the GeoLite2 database, concatenates rotated nginx logs into a single historical file, and starts Loki and Alloy to ingest it. The "Start live services" step is skipped, giving you time to monitor the import.
+This syncs files, downloads the GeoLite2 database, concatenates rotated nginx logs into a single historical file, and then starts Alloy and Loki to ingest it. The "Start live services" step is skipped, giving you time to monitor the import.
+
 There's no great way to detect the import has finished, so this is a good opportunity to manually look around to see if everything is in order. You can poll Loki's ingested line count with something like:
+
+- **TODO:** Mixing commands that run on the server and that run on the host is really confusing.
 
 ```sh
 curl -sf http://localhost:3100/metrics | grep "^loki_distributor_lines_received_total"
@@ -138,14 +130,26 @@ curl -sf http://localhost:3100/metrics | grep "^loki_distributor_lines_received_
 
 and wait for it to settle. Grafana is also accessible, but it may take some time for the data to appear there.
 
-Once stable, a normal deployment that monitors the live access.log can be started:
+Once stable, a normal deployment that monitors the live access logs can be started.
 
 ```sh
 gh workflow run deploy.yml
 ```
 
-Once the first time setup services have stopped, the temporary file they read from can be deleted: `rm /tmp/historical_access.log`.
+The deploy script takes care of checking if an Ingest History action is underway, by looking for the history files at `/tmp/historical_*.log`. If they exist, the services **are brought down first** and the history files are removed. If this is not done and the services are simply stopped, the containers will retain the last log file read position, and not be able to read successfully from the live log files.
 
-## Data persistence
+### Data persistence
 
-Named Docker volumes (`loki-data`, `grafana-data`) survive `docker compose down`. Use `docker compose down -v` to wipe them. After doing so, "first time setup" can be run.
+Named Docker volumes (`loki-data`, `grafana-data`) survive `docker compose down`. Use `docker compose down -v` to wipe them. After doing so, Ingest History can be run again.
+
+## Local Production
+
+The system can be executed directly from the repo. However, the setup performed by the deploy script would have to be done manually. Once setup the system can be brought up with:
+
+```sh
+docker compose up -d
+```
+
+Grafana is then available at `http://localhost:3000`.
+
+The stack expects nginx is writing logs to `/var/log/nginx/access.log` and `/var/log/nginx/error.log` on the host.

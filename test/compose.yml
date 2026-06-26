@@ -15,8 +15,8 @@ services:
   log-init:
     # Create the initial access.log and error.log files so the database can be seeded with
     # entries. Also create the historical log files based on the rotated log files so the
-    # "first_time_setup" step can be tested. Note the output is put in seed/ instead of
-    # /tmp as in production. This saves have to mount the host's tmp directory.
+    # "Ingest History" feature can be tested. Note the output is put in seed/ instead of
+    # /tmp as in production. This saves having to mount the host's tmp directory.
     image: python:3-alpine
     working_dir: /app
     command: sh -c "
