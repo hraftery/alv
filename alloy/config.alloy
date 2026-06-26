@@ -33,6 +33,13 @@ loki.process "parse_access_log" {
     format = "02/Jan/2006:15:04:05 -0700"
   }
 
+  // service_name is added by loki anyway, may as well use it for something
+  stage.static_labels {
+    values = {
+      service_name = "access_log",
+    }
+  }
+  
   stage.labels {
     values = {
       server_name = "",
@@ -58,7 +65,7 @@ loki.process "parse_access_log" {
     db_type = "city"
   }
 
-  // Country code as a stream label so it can be used in metric query by() clauses.
+  // Make country code a stream label so it can be used in metric query by() clauses.
   // ~250 possible values so cardinality is fine.
   stage.labels {
     values = {
@@ -94,6 +101,13 @@ loki.process "parse_error_log" {
     format = "2006/01/02 15:04:05"
   }
 
+  // service_name is added by loki anyway, may as well use it for something
+  stage.static_labels {
+    values = {
+      service_name = "error_log",
+    }
+  }
+  
   stage.labels {
     values = {
       level = "",
