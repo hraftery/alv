@@ -16,29 +16,77 @@ A self-hosted dashboard for nginx access and error logs, built on the Grafana AL
 - Docker with Compose plugin
 - A MaxMind account to download the [GeoLite2-City](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data) database.
 
-## Usage
+## Testing
 
-### Testing
+### Preparation
 
 Download the [GeoLite2-City](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data) database and move it to `alloy/GeoLite2-City.mmdb`.
 
-Then, run the test environment with:
+Then generate the seed data:
+
+```sh
+cd test
+python3 generate_access_logs.py   # produces access.log, access.log.1, access.log.2.gz, etc.
+python3 generate_error_logs.py    # produces error.log, error.log.1, error.log.2.gz, etc.
+```
+
+Both scripts accept `--help` for options (line count, date range, output file).
+
+By default they produce 10,000 lines, spread evenly over four files - the current log file and three historical log files.
+
+### First Time Setup
+
+Testing the first time setup feature requires the same steps as in production. First execute:
+
+```sh
+docker compose -f test/compose.yml -f test/compose.historical.yml up
+```
+
+And monitor the ingestion count to ensure the history has been processed:
+
+```sh
+curl -sf http://localhost:3100/metrics | grep loki_distributor_lines_received_total
+```
+
+With the default seed data, 7500 lines should be ingested from the history. When all are ingested, bring the system down, preserving the named volumes:
+
+```sh
+docker compose -f test/compose.yml -f test/compose.historical.yml down
+```
+
+`down` is important because it will clear the position file, which is stored in the container's ephemeral overlay filesystem. That will allow the log   files to be treated as new when the system is brought back up. On the other hand, it is not necessary to wait until flushing is complete, because Loki writes a WAL (Write-Ahead Log) to disk as entries arrive, before they're flushed to chunks. The WAL lives at `/loki/wal`, which is inside the loki-data named volume, so survives `down`.
+
+### Live Test Environment
+
+The live test enviornment can then be brought up:
 
 ```sh
 docker compose -f test/compose.yml up
 ```
 
-This seeds historical access and error logs, starts a local nginx, and generates live traffic. Grafana runs with anonymous admin access (no login required).
+This loads the active seed data, starts a local nginx, and generates live traffic. Grafana runs with anonymous admin access (no login required).
 
-To regenerate seed data:
+### Troubleshooting
+
+The stack takes its sweet time ingesting the logs. The delay seems to be in flushing streams from memory to disk, which is partially governed by `chunk_idle_period` with a default of 30 minutes. Until Loki flushes chunks to disk, Grafana can't see them, even though they've been ingested. After about 10 seconds logs from loki with `msg="flushing stream"` start appearing, but only a subset get flushed! To check how many lines have been ingested (not necessarily flushed!), run:
 
 ```sh
-cd test
-python3 generate_access_logs.py   # produces initial_access.log
-python3 generate_error_logs.py    # produces initial_error.log
+# What Alloy sent
+curl -sf http://localhost:12345/metrics | grep loki_write_sent_entries_total
+# What Loki discarded
+curl -sf http://localhost:3100/metrics | grep loki_discarded_samples_total
+# What Loki received
+curl -sf http://localhost:3100/metrics | grep loki_distributor_lines_received_total
+# What is still in memory
+curl -sf http://localhost:3100/metrics | grep loki_ingester_memory_chunks
 ```
 
-Both scripts accept `--help` for options (line count, date range, output file).
+Then, to save hours wondering why not all your logs are captured, execute this command to force a flush to disk:
+
+```sh
+curl -X POST http://localhost:3100/flush
+```
+
 
 ### Production
 
@@ -61,7 +109,7 @@ gh workflow run deploy.yml                           # normal deployment
 
 It can also be triggered by pushing to the `deploy` branch.
 
-### Required setup
+### Preparation
 
 1. Add the following GitHub Actions secrets (Settings → Secrets → Actions):
   - `DEPLOY_HOST` - your server's hostname or IP

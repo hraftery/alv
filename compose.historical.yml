@@ -1,0 +1,7 @@
+services:
+  alloy:
+    volumes:
+      # Shadows the /var/log/nginx directory mount in compose.yml with a single
+      # concatenated file for historical import.
+      # Usage: docker compose -f compose.yml -f compose.historical.yml up
+      - /tmp/historical_access.log:/var/log/nginx/access.log:ro
