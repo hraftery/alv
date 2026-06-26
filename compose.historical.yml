@@ -5,3 +5,4 @@ services:
       # concatenated file for historical import.
       # Usage: docker compose -f compose.yml -f compose.historical.yml up
       - /tmp/historical_access.log:/var/log/nginx/access.log:ro
+      - /tmp/historical_error.log:/var/log/nginx/error.log:ro

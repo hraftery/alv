@@ -72,7 +72,9 @@ jobs:
           ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes \
             ${{ env.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
             '{ ls -tr /var/log/nginx/access.log.*.gz 2>/dev/null | xargs zcat; \
-             cat /var/log/nginx/access.log.1 2>/dev/null; } > /tmp/historical_access.log'
+             cat /var/log/nginx/access.log.1 2>/dev/null; } > /tmp/historical_access.log && \
+             { ls -tr /var/log/nginx/error.log.*.gz 2>/dev/null | xargs zcat; \
+             cat /var/log/nginx/error.log.1 2>/dev/null; } > /tmp/historical_error.log'
           ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes \
             ${{ env.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
             "cd ${{ env.DEPLOY_PATH }} && docker compose -f compose.yml -f compose.historical.yml up -d"

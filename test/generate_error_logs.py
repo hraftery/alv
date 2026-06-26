@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Generate synthetic, historical nginx error log entries."""
+"""Generate synthetic, historical nginx error log entries in rotated files."""
 
 import argparse
-import sys
+import gzip
+import os
 from random import randint, choice, uniform
 from datetime import datetime, timedelta, timezone
 
@@ -72,14 +73,20 @@ def generate_line(dt):
     )
 
 
+def write_lines(path, lines, gz=False):
+    opener = gzip.open(path, "wt") if gz else open(path, "w")
+    with opener as f:
+        f.write("\n".join(lines) + "\n")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("n", type=int, nargs="?", default=2000,
                         help="Number of log lines to generate (default: 2000)")
     parser.add_argument("--days", type=float, default=45,
                         help="Spread entries over this many past days (default: 45)")
-    parser.add_argument("-o", type=str, default="initial_error.log",
-                        help="Specify the output file or '-' for stdout (default: initial_error.log)")
+    parser.add_argument("--rotations", type=int, default=3,
+                        help="Number of rotated files to produce (default: 3)")
     args = parser.parse_args()
 
     now = datetime.now(timezone.utc)
@@ -88,13 +95,26 @@ def main():
         now - timedelta(seconds=uniform(0, span_seconds))
         for _ in range(args.n)
     )
-    out = sys.stdout if args.o == '-' else open(args.o, 'w')
-    try:
-        for t in times:
-            print(generate_line(t), file=out)
-    finally:
-        if out is not sys.stdout:
-            out.close()
+    lines = [generate_line(t) for t in times]
+
+    os.makedirs("seed", exist_ok=True)
+
+    num_groups = args.rotations + 1
+    size = len(lines) // num_groups
+    groups = [lines[i * size:(i + 1) * size] for i in range(num_groups - 1)]
+    groups.append(lines[(num_groups - 1) * size:])  # last group gets any remainder
+
+    # groups[0] is oldest; groups[-1] is most recent (current log).
+    # Rotated files are numbered from most-recent-rotation outward:
+    #   groups[-2] -> access.log.1  (plain text, most recent rotation)
+    #   groups[-3] -> access.log.2.gz
+    #   groups[-4] -> access.log.3.gz  ...
+    write_lines("seed/error.log", groups[-1])
+    for i, group in enumerate(reversed(groups[:-1]), start=1):
+        if i == 1:
+            write_lines("seed/error.log.1", group)
+        else:
+            write_lines(f"seed/error.log.{i}.gz", group, gz=True)
 
 
 if __name__ == "__main__":

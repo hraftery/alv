@@ -13,18 +13,17 @@ services:
       - nginx-logs:/var/log/nginx:ro
 
   log-init:
-    # Create the initial access.log and error.log files so the database is seeded with entries.
-    # Also create the historical log files based on the rotated log files so the "first_time_setup"
-    # step can be tested. Note the location is seed/ instead of /tmp to save mounting the host's
-    # tmp directory. The only impact is that the prefix to run "first_time_setup" is
-    # HISTORICAL_LOG=./test/seed/historical_access.log instead of
-    # HISTORICAL_LOG=/tmp/historical_access.log
+    # Create the initial access.log and error.log files so the database can be seeded with
+    # entries. Also create the historical log files based on the rotated log files so the
+    # "first_time_setup" step can be tested. Note the output is put in seed/ instead of
+    # /tmp as in production. This saves have to mount the host's tmp directory.
     image: python:3-alpine
     working_dir: /app
     command: sh -c "
       { [ -f seed/access.log ] || python3 generate_access_logs.py; } &&
-      { [ -f seed/initial_error.log ] || python3 generate_error_logs.py -o seed/initial_error.log; } &&
-      { [ -f seed/historical_access.log ] || { ls -tr seed/access.log.*.gz 2>/dev/null | xargs zcat; cat seed/access.log.1 2>/dev/null; } > seed/historical_access.log; }"
+      { [ -f seed/error.log ] || python3 generate_error_logs.py; } &&
+      { [ -f seed/historical_access.log ] || { ls -tr seed/access.log.*.gz 2>/dev/null | xargs zcat; cat seed/access.log.1 2>/dev/null; } > seed/historical_access.log; } &&
+      { [ -f seed/historical_error.log ] || { ls -tr seed/error.log.*.gz 2>/dev/null | xargs zcat; cat seed/error.log.1 2>/dev/null; } > seed/historical_error.log; }"
     volumes:
       - ./:/app
 
@@ -38,7 +37,7 @@ services:
       - >-
         rm -f /var/log/nginx/* &&
         cp /seed/access.log* /var/log/nginx/ &&
-        cp /seed/initial_error.log /var/log/nginx/error.log &&
+        cp /seed/error.log* /var/log/nginx/ &&
         exec nginx -g 'daemon off;'
     depends_on:
       log-init:
