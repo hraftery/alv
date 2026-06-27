@@ -80,7 +80,7 @@ jobs:
             "cd ${{ env.DEPLOY_PATH }} && docker compose -f compose.yml -f compose.historical.yml up -d"
 
       - name: Start live services
-        if: ${{ !inputs.ingest_history }}
+        if: github.event_name == 'push' || !inputs.ingest_history
         # Start or restart the services without HISTORICAL_LOG set, so they run as normal.
         # If historical log files exist, a previous Ingest History run is still in progress
         # (or was interrupted). Tear it down cleanly before starting the live services.
