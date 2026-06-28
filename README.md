@@ -2,7 +2,7 @@
 
 A self-contained tool to ingest, parse and visualise the access and error logs typically produced by web servers like nginx and Apache.
 
-`alv` is based on the Grafana ALG stack and packaged as a Docker container. By default it serves a front end web interface on port 3000. The first time you log in the username is `admin` and the password is `admin`, and you'll be prompted to change it.
+`alv` is based on the Grafana ALG stack and packaged as a Docker container. By default it serves a front end web interface on port 3000. The first time you log in the username is `admin` and the password is `admin`, and you'll be prompted to change it. The dashabord can then be found under "Dashboards" in the menu on the left hand side.
 
 ![Screenshot](screenshot.png)
 
@@ -13,6 +13,7 @@ A self-contained tool to ingest, parse and visualise the access and error logs t
 	- Out of the box, `alv` expects logs in the [`vhost_combined`](https://gorbe.io/posts/nginx/logging/#vhost-combined) format, and will categorise logs by their virtual host. Adjusting to your preferred log format is straightforward.
 - Docker installed on the server, with the Compose plugin.
 - A MaxMind account to download the [GeoLite2-City](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data) database for data geolocation.
+- 1GB of RAM available.
 
 ## Usage
 
@@ -30,7 +31,7 @@ A **test environment** is also available to evaluate the system before deploymen
 
 The deploy workflow `rsync`s the repo to `/opt/alv` on your server, downloads a fresh GeoLite2 database to geolocate the access data, and brings up the system on the server.
 
-Trigger the workflow from the GitHub website, or with the `gh` CLI:
+Complete the **Preparation** below, and then trigger the workflow from the GitHub website, or with the `gh` CLI:
 
 ```sh
 gh workflow run deploy.yml -f ingest_history=true  # see "Ingest History" below
@@ -43,17 +44,31 @@ Normal deployment can also be triggered by pushing to the `deploy` branch.
 
 ### Preparation
 
-1. Add the following GitHub Actions secrets (with `gh secret set <SECRET_NAME>`, or with the GitHub website via Settings → Secrets → Actions):
-  - `DEPLOY_HOST`: your server's hostname or IP
-  - `DEPLOY_KNOWN_HOST`: output of `ssh-keyscan -t ed25519 your-server`, assuming you've added the server as a known host locally
-  - `DEPLOY_SSH_KEY`: the private key for the `alv` user on the server
-  - `MAXMIND_ACCOUNT_ID`: your MaxMind account ID, so a GeoLite2-City database can be downloaded to the server
-  - `MAXMIND_LICENSE_KEY`: generate via "Manage license keys" in your MaxMind account webpage
+Each step includes an example command to complete that step. Adjust to suit your environment as required.
+
+1. On your local computer:
+  1. Create a passwordless SSH key pair for `alv` (or pick an existing pair to use).
+      - `ssh-keygen -t ed25519 -C "alv - Access Log Visualiser" -f ~/.ssh/id_alv -N ""`.
 1. On the server:
   1. Create the `alv` user. Add it to the `adm` group so it can read logs created by nginx, and the `docker` group so it can run docker without sudo.
-      - For example, if your server runs Ubuntu, this may do: `sudo useradd -M -G adm,docker alv`. `-M` skips home directory creation, and `-G` adds secondary groups to the default `alv` group.
-  1. Create `/opt/alv` owned by `alv`.
-      - For example, `sudo mkdir -p /opt/alv && sudo chown alv:alv /opt/alv`.
+      - For example, `sudo useradd -m -G adm,docker alv`.
+          - `-m` creates a home directory to conveniently contain the SSH files
+          - `-G` adds secondary groups to the default `alv` group.
+  1. Add the SSH folder for the `alv` user.
+      - `sudo mkdir /home/alv/.ssh && sudo chmod 700 /home/alv/.ssh`
+  1. Add the public key from the key pair created in Step 1.
+      - `echo "<THE_PUB_KEY_FROM_STEP_ONE>" | sudo tee /home/alv/.ssh/authorized_keys`
+  1. And set permissions and ownership.
+      - `sudo chmod 600 /home/alv/.ssh/authorized_keys && sudo chown -R alv:alv /home/alv/.ssh`
+  1. Finally, create `/opt/alv`, owned by `alv`.
+      - `sudo mkdir -p /opt/alv && sudo chown alv:alv /opt/alv`.
+1. In your GitHub account, add the following GitHub Actions secrets (with `gh secret set <SECRET_NAME>`, or on the GitHub website via Settings → Secrets → Actions):
+  - `DEPLOY_HOST`: your server's hostname or IP address.
+  - `DEPLOY_KNOWN_HOST`: output of `ssh-keyscan -t ed25519 your-server`, assuming you've added the server as a known host locally.
+  - `DEPLOY_SSH_KEY`: the private key from key pair created in Step 1. Include the "-----BEGIN OPENSSH PRIVATE KEY-----" and "-----BEGIN END PRIVATE KEY-----" lines. For example:
+      - `gh secret set DEPLOY_SSH_KEY < ~/.ssh/id_alv`.
+  - `MAXMIND_ACCOUNT_ID`: your MaxMind account ID, so a GeoLite2-City database can be downloaded to the server.
+  - `MAXMIND_LICENSE_KEY`: generate via "Manage license keys" in your MaxMind account webpage.
 
 
 ### Ingest History
@@ -64,9 +79,19 @@ To seed the log database with logs from files that have already been rotated, ru
 gh workflow run deploy.yml -f ingest_history=true
 ```
 
+The `workflow run` command only triggers the workflow. While `gh run watch` can be used to view the output, the website is a much better interface. Open the URL that the `workflow run` command provides to see the workflow result.
+
 Just like a normal deployment, this syncs files and downloads the GeoLite2 database. It then concatenates rotated access logs it finds on the server into a historical file, and then brings up the system to ingest it instead of the live access log.
 
-There's no great way to detect the import has finished, so this is a good opportunity to manually look around to see if everything is in order. You can poll Loki's ingested line count with something like this, and wait for the count to settle:
+There's no great way to detect the import has finished, so this is a good opportunity to manually look around to see if everything is in order. Verify the three `alv` containers are up and running:
+
+```sh
+# Must be run on the server
+docker ps
+```
+
+
+You can poll Loki's ingested line count with something like this, and wait for the count to settle:
 
 ```sh
 # Must be run on the server
@@ -147,6 +172,8 @@ By default, `generate_access_logs.py` produces 10,000 lines and `generate_error_
 
 ## Troubleshooting
 
+### Missing Logs
+
 The stack takes its sweet time making new logs visible. The delay seems to be in flushing streams from memory to disk, which is partially governed by `chunk_idle_period` with a default of 30 minutes. Until Loki flushes chunks to disk, Grafana can't see them, even though they've been ingested. After about 10 seconds, logs from loki with `msg="flushing stream"` start appearing, but only a subset get flushed. To check how many lines have been ingested (not necessarily flushed!), run:
 
 ```sh
@@ -166,6 +193,11 @@ Then, to save hours wondering why not all your logs are captured, execute this c
 curl -X POST http://localhost:3100/flush
 ```
 
+### HTTPS / Secure Connection
+
+By default, Grafana only supports HTTP. Modern browsers can make using HTTP very difficult. If your browser is attempting to redirect to HTTPS and therefore failing to connect, consider the answers [here](https://superuser.com/questions/565409/how-to-stop-an-automatic-redirect-from-http-to-https-in-chrome).
+
+If you already have a certificate for your domain it may ultimately be fruitless trying to convince the browser not to use if for `alv`. Instead, try using your server's IP address instead of the domain name.
 
 ## Tech Stack
 
