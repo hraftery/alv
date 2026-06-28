@@ -23,8 +23,8 @@
   "panels": [
     {
       "datasource": {
-        "type": "loki",
-        "uid": "loki"
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
       },
       "fieldConfig": {
         "defaults": {
@@ -113,9 +113,12 @@
             "type": "victoriametrics-logs-datasource",
             "uid": "victorialogs"
           },
-          "expr": "{service_name=\"access_log\",server_name=~\"$server\"} | stats by (server_name) count() as requests",
+          "editorMode": "code",
+          "expr": "{service_name=\"access_log\"} | stats by (server_name) count() as requests",
           "legendFormat": "{{server_name}}",
-          "queryType": "range",
+          "maxLines": 50,
+          "queryType": "statsRange",
+          "step": "",
           "refId": "A"
         }
       ],
