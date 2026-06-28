@@ -110,10 +110,10 @@
       "targets": [
         {
           "datasource": {
-            "type": "loki",
-            "uid": "loki"
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
           },
-          "expr": "sum(rate({server_name=~\"$server\"}[$__interval])) by (server_name) * 3600",
+          "expr": "{service_name=\"access_log\",server_name=~\"$server\"} | stats by (server_name) count() as requests",
           "legendFormat": "{{server_name}}",
           "queryType": "range",
           "refId": "A"

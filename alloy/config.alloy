@@ -15,7 +15,7 @@ loki.source.file "error_logs" {
 }
 
 loki.process "parse_access_log" {
-  forward_to = [loki.write.default.receiver]
+  forward_to = [loki.write.loki.receiver, loki.write.victorialogs.receiver]
 
   // We only ingest from one file at a time, so drop the auto-added filename
   // label because it adds unnecessary cardinality. Historical logs may come
@@ -82,7 +82,7 @@ loki.process "parse_access_log" {
   }
 }
 loki.process "parse_error_log" {
-  forward_to = [loki.write.default.receiver]
+  forward_to = [loki.write.loki.receiver, loki.write.victorialogs.receiver]
 
   // Same as parse_access_log: drop filename to unify streams.
   stage.label_drop {
@@ -116,8 +116,14 @@ loki.process "parse_error_log" {
 }
 
 
-loki.write "default" {
+loki.write "loki" {
   endpoint {
     url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+loki.write "victorialogs" {
+  endpoint {
+    url = "http://victorialogs:9428/insert/loki/api/v1/push"
   }
 }
