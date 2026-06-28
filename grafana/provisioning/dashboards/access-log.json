@@ -36,7 +36,7 @@
             "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "",
+            "axisLabel": "hits / hour",
             "axisPlacement": "auto",
             "barAlignment": 0,
             "barWidthFactor": 0.6,
@@ -116,7 +116,7 @@
             "uid": "victorialogs"
           },
           "editorMode": "code",
-          "expr": "{service_name=\"access_log\", server_name=~\"$server\"} | stats by (server_name) count() as requests",
+          "expr": "{service_name=\"access_log\", server_name=~\"$server\"} | stats by (server_name) count() as requests | math requests * 3600000 / $__interval_ms as requests",
           "legendFormat": "{{server_name}}",
           "maxLines": 50,
           "queryType": "statsRange",
