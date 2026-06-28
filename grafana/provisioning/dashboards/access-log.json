@@ -19,7 +19,6 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
-  "links": [],
   "liveNow": false,
   "panels": [
     {
@@ -76,8 +75,7 @@
             ]
           },
           "unit": "short"
-        },
-        "overrides": []
+        }
       },
       "gridPos": {
         "h": 9,
@@ -120,8 +118,8 @@
           "legendFormat": "{{server_name}}",
           "maxLines": 50,
           "queryType": "statsRange",
-          "step": "",
-          "refId": "A"
+          "refId": "A",
+          "step": ""
         }
       ],
       "title": "Hit History",
@@ -512,8 +510,7 @@
               }
             ]
           }
-        },
-        "overrides": []
+        }
       },
       "gridPos": {
         "h": 9,
@@ -856,8 +853,7 @@
             ]
           },
           "unit": "decbytes"
-        },
-        "overrides": []
+        }
       },
       "gridPos": {
         "h": 9,
@@ -947,7 +943,7 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 388
+                "value": 599
               }
             ]
           },
@@ -963,7 +959,7 @@
               },
               {
                 "id": "custom.width",
-                "value": 96
+                "value": 61
               }
             ]
           }
@@ -1066,7 +1062,7 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 283
+                "value": 595
               }
             ]
           },
@@ -1082,7 +1078,7 @@
               },
               {
                 "id": "custom.width",
-                "value": 90
+                "value": 63
               }
             ]
           }
@@ -1166,8 +1162,7 @@
             ]
           },
           "unit": "short"
-        },
-        "overrides": []
+        }
       },
       "gridPos": {
         "h": 4,
@@ -1241,8 +1236,7 @@
             ]
           },
           "unit": "percent"
-        },
-        "overrides": []
+        }
       },
       "gridPos": {
         "h": 8,
@@ -1404,8 +1398,7 @@
             ]
           },
           "unit": "short"
-        },
-        "overrides": []
+        }
       },
       "gridPos": {
         "h": 4,
