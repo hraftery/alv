@@ -52,7 +52,7 @@ jobs:
             ${{ env.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
             "curl -sL -u '${{ secrets.MAXMIND_ACCOUNT_ID }}:${{ secrets.MAXMIND_LICENSE_KEY }}' \
               'https://download.maxmind.com/geoip/databases/GeoLite2-City/download?suffix=tar.gz' \
-              | tar -xz --strip-components=1 -C /opt/alv/alloy/ '*.mmdb'"
+              | tar -xz --strip-components=1 -C /opt/alv/alloy/ --wildcards '*.mmdb'"
       
       - name: Import historical logs
         if: inputs.ingest_history
