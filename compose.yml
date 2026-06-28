@@ -29,11 +29,16 @@ services:
       - -retentionPeriod=90d   # mirrors reject_old_samples_max_age in loki/config.yml
 
   grafana:
-    build: ./grafana
+    image: grafana/grafana:13.1.0
     ports:
       - "3000:3000"
     environment:
       - GF_PLUGIN_BACKGROUND_INSTALLER_ENABLED=false
+      # Could use a custom Dockerfile with `grafana cli plugins install`, but the env var
+      # option is simpler and saves having to maintain our own image. The downside is running
+      # an install on init. Either way, GF_PLUGIN_BACKGROUND_INSTALLER_ENABLED applies, and
+      # the residual errors about failing to update "plugins-bundled/elasticsearch" remain.
+      - GF_INSTALL_PLUGINS=victoriametrics-logs-datasource
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning
       - grafana-data:/var/lib/grafana
