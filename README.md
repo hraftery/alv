@@ -63,12 +63,12 @@ Each step includes an example command to complete that step. Adjust to suit your
   1. Finally, create `/opt/alv`, owned by `alv`.
       - `sudo mkdir -p /opt/alv && sudo chown alv:alv /opt/alv`.
 1. In your GitHub account, add the following GitHub Actions secrets (with `gh secret set <SECRET_NAME>`, or on the GitHub website via Settings → Secrets → Actions):
-  - `DEPLOY_HOST`: your server's hostname or IP address.
-  - `DEPLOY_KNOWN_HOST`: output of `ssh-keyscan -t ed25519 your-server`, assuming you've added the server as a known host locally.
-  - `DEPLOY_SSH_KEY`: the private key from key pair created in Step 1. Include the "-----BEGIN OPENSSH PRIVATE KEY-----" and "-----BEGIN END PRIVATE KEY-----" lines. For example:
-      - `gh secret set DEPLOY_SSH_KEY < ~/.ssh/id_alv`.
-  - `MAXMIND_ACCOUNT_ID`: your MaxMind account ID, so a GeoLite2-City database can be downloaded to the server.
-  - `MAXMIND_LICENSE_KEY`: generate via "Manage license keys" in your MaxMind account webpage.
+    - `DEPLOY_HOST`: your server's hostname or IP address.
+    - `DEPLOY_KNOWN_HOST`: output of `ssh-keyscan -t ed25519 your-server`, assuming you've added the server as a known host locally.
+    - `DEPLOY_SSH_KEY`: the private key from key pair created in Step 1. Include the "-----BEGIN OPENSSH PRIVATE KEY-----" and "-----BEGIN END PRIVATE KEY-----" lines. For example:
+        - `gh secret set DEPLOY_SSH_KEY < ~/.ssh/id_alv`.
+    - `MAXMIND_ACCOUNT_ID`: your MaxMind account ID, so a GeoLite2-City database can be downloaded to the server.
+    - `MAXMIND_LICENSE_KEY`: generate via "Manage license keys" in your MaxMind account webpage.
 
 
 ### Ingest History
@@ -126,7 +126,7 @@ Download the [GeoLite2-City](https://dev.maxmind.com/geoip/geolite2-free-geoloca
 
 ### Ingest History
 
-The test environment replicates the Ingest History feature. To excercise it, run:
+The test environment replicates the Ingest History feature. To exercise it, run:
 
 ```sh
 docker compose -f test/compose.yml -f test/compose.historical.yml up
@@ -154,7 +154,9 @@ The live test enviornment can then be brought up:
 docker compose -f test/compose.yml up
 ```
 
-This loads the live seed data files, starts a local nginx, and starts generating new traffic. In the test environment, Grafana runs with anonymous admin access (no login required).
+This loads the live seed data files, starts a local nginx, and starts generating new traffic.
+
+In the test environment, Grafana runs with anonymous admin access (no login required).
 
 ### Seed Data
 
@@ -197,9 +199,11 @@ curl -X POST http://localhost:3100/flush
 
 By default, Grafana only supports HTTP. Modern browsers can make using HTTP very difficult. If your browser is attempting to redirect to HTTPS and therefore failing to connect, consider the answers [here](https://superuser.com/questions/565409/how-to-stop-an-automatic-redirect-from-http-to-https-in-chrome).
 
-If you already have a certificate for your domain it may ultimately be fruitless trying to convince the browser not to use if for `alv`. Instead, try using your server's IP address instead of the domain name.
+If you already have a certificate for your domain it may ultimately be fruitless trying to convince the browser not to use it for `alv`. Instead, try using your server's IP address instead of the domain name.
 
-## Tech Stack
+## Tech Details
+
+### Tech Stack
 
 | Component | Role | Access |
 |-----------|------|--------|
