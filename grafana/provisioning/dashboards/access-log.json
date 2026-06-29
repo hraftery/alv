@@ -1463,8 +1463,8 @@
           ]
         },
         "datasource": {
-          "type": "loki",
-          "uid": "loki"
+          "type": "victoriametrics-logs-datasource",
+          "uid": "victorialogs"
         },
         "definition": "",
         "hide": 0,
@@ -1474,9 +1474,9 @@
         "name": "server",
         "options": [],
         "query": {
-          "label": "server_name",
-          "stream": "",
-          "type": 1
+          "type": "fieldValue",
+          "field": "server_name",
+          "query": ""
         },
         "refresh": 2,
         "regex": "",

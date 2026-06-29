@@ -7,16 +7,7 @@ services:
       - /var/log/nginx:/var/log/nginx:ro
     command: run /etc/alloy/config.alloy
     depends_on:
-      - loki
-
-  loki:
-    image: grafana/loki:3.7.3
-    ports:
-      - "127.0.0.1:3100:3100"
-    volumes:
-      - ./loki/config.yml:/etc/loki/config.yml
-      - loki-data:/loki
-    command: -config.file=/etc/loki/config.yml
+      - victorialogs
 
   victorialogs:
     image: victoriametrics/victoria-logs:v1.24.0-victorialogs
@@ -26,7 +17,7 @@ services:
       - victorialogs-data:/victoria-logs-data
     command:
       - -storageDataPath=/victoria-logs-data
-      - -retentionPeriod=90d   # mirrors reject_old_samples_max_age in loki/config.yml
+      - -retentionPeriod=90d
 
   grafana:
     image: grafana/grafana:13.1.0
@@ -43,9 +34,8 @@ services:
       - ./grafana/provisioning:/etc/grafana/provisioning
       - grafana-data:/var/lib/grafana
     depends_on:
-      - loki
+      - victorialogs
 
 volumes:
-  loki-data:
   victorialogs-data:
   grafana-data:

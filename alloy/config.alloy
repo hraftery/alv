@@ -14,8 +14,12 @@ loki.source.file "error_logs" {
   forward_to = [loki.process.parse_error_log.receiver]
 }
 
+// Note the process sections were written for Loki. Now that we've switched to
+// VictoriaLogs, "labels" become "stream fields" (indexed) and
+// "structured_metadata" become "regular fields" (stored per-entry). However,
+// Alloy uses Loki terminology for the commands, so it remains.
 loki.process "parse_access_log" {
-  forward_to = [loki.write.loki.receiver, loki.write.victorialogs.receiver]
+  forward_to = [loki.write.victorialogs.receiver]
 
   // We only ingest from one file at a time, so drop the auto-added filename
   // label because it adds unnecessary cardinality. Historical logs may come
@@ -82,7 +86,7 @@ loki.process "parse_access_log" {
   }
 }
 loki.process "parse_error_log" {
-  forward_to = [loki.write.loki.receiver, loki.write.victorialogs.receiver]
+  forward_to = [loki.write.victorialogs.receiver]
 
   // Same as parse_access_log: drop filename to unify streams.
   stage.label_drop {
@@ -115,12 +119,6 @@ loki.process "parse_error_log" {
   }
 }
 
-
-loki.write "loki" {
-  endpoint {
-    url = "http://loki:3100/loki/api/v1/push"
-  }
-}
 
 loki.write "victorialogs" {
   endpoint {
