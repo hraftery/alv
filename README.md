@@ -1,8 +1,8 @@
 # alv — Access Log Visualiser
 
-A self-contained tool to ingest, parse and visualise the access and error logs typically produced by web servers like nginx and Apache.
+*A self-contained tool to ingest, parse and visualise the access and error logs typically produced by web servers like nginx and Apache.*
 
-`alv` is based on the Grafana ALG stack and packaged as a Docker container. By default it serves a front end web interface on port 3000. The first time you log in the username is `admin` and the password is `admin`, and you'll be prompted to change it. The dashabord can then be found under "Dashboards" in the menu on the left hand side.
+`alv` is based on a Grafana stack and is packaged as a Docker container. By default it serves the Grafana front end on port 3000. The first time you log in the username is `admin` and the password is `admin`, and you'll be prompted to change it. The dashboard can then be found under "Dashboards" in the menu on the left hand side.
 
 ![Screenshot](screenshot.png)
 
@@ -13,7 +13,7 @@ A self-contained tool to ingest, parse and visualise the access and error logs t
 	- Out of the box, `alv` expects logs in the [`vhost_combined`](https://gorbe.io/posts/nginx/logging/#vhost-combined) format, and will categorise logs by their virtual host. Adjusting to your preferred log format is straightforward.
 - Docker installed on the server, with the Compose plugin.
 - A MaxMind account to download the [GeoLite2-City](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data) database for data geolocation.
-- 1GB of RAM available.
+- A minimum of 1GB of RAM available.
 
 ## Usage
 
@@ -44,11 +44,15 @@ Normal deployment can also be triggered by pushing to the `deploy` branch.
 
 ### Preparation
 
-Each step includes an example command to complete that step. Adjust to suit your environment as required.
+Each step below includes an example command to complete that step. Adjust to suit your environment as required.
 
 1. On your local computer:
   1. Create a passwordless SSH key pair for `alv` (or pick an existing pair to use).
-      - `ssh-keygen -t ed25519 -C "alv - Access Log Visualiser" -f ~/.ssh/id_alv -N ""`.
+      - `ssh-keygen -t ed25519 -C "alv - Access Log Visualiser" -f ~/.ssh/id_alv -N ""`
+          - `-t ed25519` is the modern standard for public-key cryptography
+          - `-C` adds an optional comment string
+          - `-f` specifies the filename for the private key (the public key file will have a `.pub` suffix)
+          - `-N ""` disables the passphrase
 1. On the server:
   1. Create the `alv` user. Add it to the `adm` group so it can read logs created by nginx, and the `docker` group so it can run docker without sudo.
       - For example, `sudo useradd -m -G adm,docker alv`.
@@ -91,14 +95,14 @@ docker ps
 ```
 
 
-You can poll Loki's ingested line count with something like this, and wait for the count to settle:
+You can poll the line count ingested by VictoriaLogs with something like this, and wait for the count to settle:
 
 ```sh
 # Must be run on the server
-curl -sf http://localhost:3100/metrics | grep "^loki_distributor_lines_received_total"
+curl -sf http://localhost:9428/metrics | grep "^vl_rows_ingested_total"
 ```
 
-Grafana is also accessible at [http://your.server.url:3000](http://your.server.url:3000), but it may take some time for the data to appear there.
+Grafana is also accessible at [http://your.server.url:3000](http://your.server.url:3000)
 
 See the [Troubleshooting section](#troubleshooting) for more suggestions.
 
@@ -116,7 +120,7 @@ The deploy script takes care of checking if an Ingest History action is underway
 
 ### Data persistence
 
-Named Docker volumes (`loki-data`, `grafana-data`) survive `docker compose down`. Use `docker compose down -v` to wipe them. After doing so, Ingest History can be run again.
+Named Docker volumes (`victorialogs-data`, `grafana-data`) survive `docker compose down`. Use `docker compose down -v` to wipe them. After doing so, Ingest History can be run again.
 
 ## Testing
 
@@ -135,7 +139,7 @@ docker compose -f test/compose.yml -f test/compose.historical.yml up
 Monitor the ingestion count to ensure the history has been processed:
 
 ```sh
-curl -sf http://localhost:3100/metrics | grep loki_distributor_lines_received_total
+curl -sf http://localhost:9428/metrics | grep "^vl_rows_ingested_total"
 ```
 
 With the default seed data, 9000 lines (7500 access logs and 1500 error logs) should be ingested from the history. When all are ingested, bring the system down, preserving the named volumes:
@@ -144,7 +148,7 @@ With the default seed data, 9000 lines (7500 access logs and 1500 error logs) sh
 docker compose -f test/compose.yml -f test/compose.historical.yml down
 ```
 
-`down` is important because it will clear Alloy's position file, which is stored in the container's ephemeral overlay filesystem. That will allow the log files to be treated as new when the system is brought back up. However, it is not necessary to wait until flushing is complete because Loki writes a WAL (Write-Ahead Log) to disk as entries arrive, before they're flushed to chunks. The WAL lives at `/loki/wal`, which is inside the loki-data named volume, so survives `down`.
+`down` is important because it will clear Alloy's position file, which is stored in the container's ephemeral overlay filesystem. That will allow the log files to be treated as new when the system is brought back up.
 
 ### Live Test Environment
 
@@ -176,23 +180,16 @@ By default, `generate_access_logs.py` produces 10,000 lines and `generate_error_
 
 ### Missing Logs
 
-The stack takes its sweet time making new logs visible. The delay seems to be in flushing streams from memory to disk, which is partially governed by `chunk_idle_period` with a default of 30 minutes. Until Loki flushes chunks to disk, Grafana can't see them, even though they've been ingested. After about 10 seconds, logs from loki with `msg="flushing stream"` start appearing, but only a subset get flushed. To check how many lines have been ingested (not necessarily flushed!), run:
+VictoriaLogs writes data to disk on arrival, so logs are typically queryable within seconds. If data is missing, verify Alloy received and forwarded the lines:
 
 ```sh
-# What Alloy sent
 curl -sf http://localhost:12345/metrics | grep loki_write_sent_entries_total
-# What Loki discarded
-curl -sf http://localhost:3100/metrics | grep loki_discarded_samples_total
-# What Loki received
-curl -sf http://localhost:3100/metrics | grep loki_distributor_lines_received_total
-# What is still in memory
-curl -sf http://localhost:3100/metrics | grep loki_ingester_memory_chunks
 ```
 
-Then, to save hours wondering why not all your logs are captured, execute this command to force a flush to disk:
+and cross-check with VictoriaLogs:
 
 ```sh
-curl -X POST http://localhost:3100/flush
+curl -sf http://localhost:9428/metrics | grep vl_rows_ingested_total
 ```
 
 ### HTTPS / Secure Connection
@@ -208,5 +205,5 @@ If you already have a certificate for your domain it may ultimately be fruitless
 | Component | Role | Access |
 |-----------|------|--------|
 | Alloy | Log collector. Tails log files and parses fields. | Port 12345 in test environment only. |
-| Loki | Log storage and querying. | Port 3100, localhost only. |
+| VictoriaLogs | Log storage and querying. | Port 9428, localhost only. |
 | Grafana | Dashboard. Data visualisations. | Port 3000. |
