@@ -21,6 +21,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-tags: true
+
+      - name: Inject version into dashboard title
+        # Tags are used to indicate releases, so if the latest commit has a tag, use that
+        # If not, we're deploying an unreleased version, so use the SHA. Even though the
+        # version refers to the whole stack, put it in the name of the dashboard as a
+        # convenient place for the user to spot it.
+        run: |
+          ALV_VERSION=$(git describe --tags --exact-match 2>/dev/null || git rev-parse --short HEAD)
+          sed -i "s/alv - Access Log Visualiser/alv ${ALV_VERSION} - Access Log Visualiser/" \
+            grafana/provisioning/dashboards/access-log.json
 
       - name: Write SSH key
         run: |
@@ -64,10 +76,9 @@ jobs:
         # The production containers will then be run, substituting the historical log file
         # for the real access.log, and the ingestion will start. There's no great way to
         # detect it has finished, so this is a good opportunity to manually look around to see
-        # if everything is in order. You can poll Loki's ingested line count with something
-        # like `curl -sf http://localhost:3100/metrics | grep "^loki_distributor_lines_received_total"
-        # and wait for it to settle. Grafana is also accessible, but it may take some time for
-        # the data to appear there.
+        # if everything is in order. You can poll VictoriaLogs' ingested line count with
+        # `curl -sf http://localhost:9428/metrics | grep "^vl_rows_ingested_total"` and wait
+        # for it to settle. Grafana is also accessible at http://localhost:3000
         run: |
           ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes \
             ${{ env.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
