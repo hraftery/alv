@@ -31,7 +31,7 @@ A **test environment** is also available to evaluate the system before deploymen
 
 The deploy workflow `rsync`s the repo to `/opt/alv` on your server, downloads a fresh GeoLite2 database to geolocate the access data, and brings up the system on the server.
 
-Complete the **Preparation** below, and then trigger the workflow from the GitHub website, or with the `gh` CLI:
+Complete the [Preparation steps](#preparation) below, and then trigger the workflow from the GitHub website, or with the `gh` CLI like so:
 
 ```sh
 gh workflow run deploy.yml -f ingest_history=true  # see "Ingest History" below
@@ -47,25 +47,25 @@ Normal deployment can also be triggered by pushing to the `deploy` branch.
 Each step below includes an example command to complete that step. Adjust to suit your environment as required.
 
 1. On your local computer:
-  1. Create a passwordless SSH key pair for `alv` (or pick an existing pair to use).
-      - `ssh-keygen -t ed25519 -C "alv - Access Log Visualiser" -f ~/.ssh/id_alv -N ""`
-          - `-t ed25519` is the modern standard for public-key cryptography
-          - `-C` adds an optional comment string
-          - `-f` specifies the filename for the private key (the public key file will have a `.pub` suffix)
-          - `-N ""` disables the passphrase
+    1. Create a passwordless SSH key pair for `alv` (or pick an existing pair to use).
+        - `ssh-keygen -t ed25519 -C "alv - Access Log Visualiser" -f ~/.ssh/id_alv -N ""`
+            - `-t ed25519` is the modern standard for public-key cryptography
+            - `-C` adds an optional comment string
+            - `-f` specifies the filename for the private key (the public key file will have a `.pub` suffix)
+            - `-N ""` disables the passphrase
 1. On the server:
-  1. Create the `alv` user. Add it to the `adm` group so it can read logs created by nginx, and the `docker` group so it can run docker without sudo.
-      - For example, `sudo useradd -m -G adm,docker alv`.
-          - `-m` creates a home directory to conveniently contain the SSH files
-          - `-G` adds secondary groups to the default `alv` group.
-  1. Add the SSH folder for the `alv` user.
-      - `sudo mkdir /home/alv/.ssh && sudo chmod 700 /home/alv/.ssh`
-  1. Add the public key from the key pair created in Step 1.
-      - `echo "<THE_PUB_KEY_FROM_STEP_ONE>" | sudo tee /home/alv/.ssh/authorized_keys`
-  1. And set permissions and ownership.
-      - `sudo chmod 600 /home/alv/.ssh/authorized_keys && sudo chown -R alv:alv /home/alv/.ssh`
-  1. Finally, create `/opt/alv`, owned by `alv`.
-      - `sudo mkdir -p /opt/alv && sudo chown alv:alv /opt/alv`.
+    1. Create the `alv` user. Add it to the `adm` group so it can read logs created by nginx, and the `docker` group so it can run docker without sudo.
+        - For example, `sudo useradd -m -G adm,docker alv`.
+            - `-m` creates a home directory to conveniently contain the SSH files
+            - `-G` adds secondary groups to the default `alv` group.
+    1. Add the SSH folder for the `alv` user.
+        - `sudo mkdir /home/alv/.ssh && sudo chmod 700 /home/alv/.ssh`
+    1. Add the public key from the key pair created in Step 1.
+        - `echo "<THE_PUB_KEY_FROM_STEP_ONE>" | sudo tee /home/alv/.ssh/authorized_keys`
+    1. And set permissions and ownership.
+        - `sudo chmod 600 /home/alv/.ssh/authorized_keys && sudo chown -R alv:alv /home/alv/.ssh`
+    1. Finally, create `/opt/alv`, owned by `alv`.
+        - `sudo mkdir -p /opt/alv && sudo chown alv:alv /opt/alv`.
 1. In your GitHub account, add the following GitHub Actions secrets (with `gh secret set <SECRET_NAME>`, or on the GitHub website via Settings → Secrets → Actions):
     - `DEPLOY_HOST`: your server's hostname or IP address.
     - `DEPLOY_KNOWN_HOST`: output of `ssh-keyscan -t ed25519 your-server`, assuming you've added the server as a known host locally.
