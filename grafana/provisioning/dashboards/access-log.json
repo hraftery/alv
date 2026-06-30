@@ -1458,9 +1458,7 @@
         "allowCustomValue": true,
         "current": {
           "text": "All",
-          "value": [
-            "$__all"
-          ]
+          "value": "$__all"
         },
         "datasource": {
           "type": "victoriametrics-logs-datasource",
@@ -1470,7 +1468,7 @@
         "hide": 0,
         "includeAll": true,
         "label": "Server",
-        "multi": true,
+        "multi": false,
         "name": "server",
         "options": [],
         "query": {
@@ -1493,7 +1491,7 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Access Log Overview",
+  "title": "alv - Access Log Visualiser",
   "weekStart": "",
   "version": 1,
   "uid": "alv-access-log",
