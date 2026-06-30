@@ -1,4 +1,10 @@
 services:
+
+  # Do not add traffic to the historical logs.
+  traffic-gen:
+    profiles:
+      - disabled
+
   nginx:
     entrypoint:
       - /bin/sh
