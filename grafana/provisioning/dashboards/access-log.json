@@ -1336,7 +1336,7 @@
         "type": "victoriametrics-logs-datasource",
         "uid": "victorialogs"
       },
-      "description": "Nginx error log entries. Not filtered by $server — error logs do not carry server_name.",
+      "description": "Nginx error log entries. Filtered by $server where available — non-request errors (startup, config reload) do not carry server_name and will only appear when All is selected.",
       "gridPos": {
         "h": 8,
         "w": 18,
@@ -1368,7 +1368,7 @@
             "uid": "victorialogs"
           },
           "editorMode": "code",
-          "expr": "{service_name=\"error_log\"}",
+          "expr": "{service_name=\"error_log\", server_name=~\"$server\"}",
           "maxLines": 50,
           "queryType": "range",
           "refId": "A"

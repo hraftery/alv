@@ -93,11 +93,12 @@ loki.process "parse_error_log" {
     values = ["filename"]
   }
 
-  // Typical line looks like:
-  //   2026/06/24 10:30:00 [error] 7#7: *1 open() "..." failed, client: 172.18.0.5, ...
-  // For visualisation purposes, we skip over the part between '[error]' and 'client:' .
+  // Typical request-error line:
+  //   2026/06/24 10:30:00 [error] 7#7: *1 open() "..." failed, client: 1.2.3.4, server: example.com, request: "GET /"
+  // "server:" is absent for non-request errors (startup, config reload, etc.).
+  // Between '[error]' and 'client:' is not captured because it doesn't contain field-worthy content.
   stage.regex {
-    expression = `^(?P<timestamp>\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) \[(?P<level>\w+)\] .+client: (?P<remote_ip>[^,]+),`
+    expression = `^(?P<timestamp>\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) \[(?P<level>\w+)\] .+client: (?P<remote_ip>[^,]+),(?:\s+server:\s+(?P<server_name>[^,]+))?`
   }
 
   stage.timestamp {
@@ -114,7 +115,8 @@ loki.process "parse_error_log" {
   
   stage.labels {
     values = {
-      level = "",
+      level       = "",
+      server_name = "",
     }
   }
 }
