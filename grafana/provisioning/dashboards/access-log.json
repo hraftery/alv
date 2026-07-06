@@ -79,7 +79,7 @@
       },
       "gridPos": {
         "h": 9,
-        "w": 24,
+        "w": 19,
         "x": 0,
         "y": 0
       },
@@ -91,14 +91,7 @@
           "multiLane": false
         },
         "legend": {
-          "calcs": [
-            "sum"
-          ],
-          "displayMode": "table",
-          "enableFacetedFilter": false,
-          "overflow": "ellipsis",
-          "placement": "right",
-          "showLegend": true
+          "showLegend": false
         },
         "tooltip": {
           "hideZeros": false,
@@ -140,7 +133,7 @@
             "cellOptions": {
               "type": "auto"
             },
-            "filterable": true,
+            "filterable": false,
             "footer": {
               "reducers": []
             },
@@ -259,7 +252,7 @@
             "cellOptions": {
               "type": "auto"
             },
-            "filterable": true,
+            "filterable": false,
             "footer": {
               "reducers": []
             },
@@ -378,7 +371,7 @@
             "cellOptions": {
               "type": "auto"
             },
-            "filterable": true,
+            "filterable": false,
             "footer": {
               "reducers": []
             },
@@ -918,7 +911,7 @@
             "cellOptions": {
               "type": "auto"
             },
-            "filterable": true,
+            "filterable": false,
             "footer": {
               "reducers": []
             },
@@ -1037,7 +1030,7 @@
             "cellOptions": {
               "type": "auto"
             },
-            "filterable": true,
+            "filterable": false,
             "footer": {
               "reducers": []
             },
@@ -1385,8 +1378,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "fixedColor": "blue",
-            "mode": "fixed"
+            "mode": "palette-classic"
           },
           "thresholds": {
             "mode": "absolute",
@@ -1401,10 +1393,10 @@
         }
       },
       "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 0,
-        "y": 40
+        "h": 9,
+        "w": 5,
+        "x": 19,
+        "y": 0
       },
       "id": 12,
       "options": {
@@ -1432,14 +1424,15 @@
             "uid": "victorialogs"
           },
           "editorMode": "code",
-          "expr": "{service_name=\"access_log\", server_name=~\"$server\"} | stats count() as total",
+          "expr": "{service_name=\"access_log\", server_name=~\"$server\"} | stats by (server_name) count() as total",
+          "legendFormat": "{{server_name}}",
           "maxLines": 50,
           "queryType": "statsRange",
           "refId": "A",
           "step": ""
         }
       ],
-      "title": "Total",
+      "title": "Total Hits",
       "type": "stat"
     }
   ],
