@@ -171,7 +171,8 @@
             "footer": {
               "reducers": []
             },
-            "inspect": false
+            "inspect": false,
+            "minWidth": 60
           },
           "thresholds": {
             "mode": "absolute",
@@ -187,18 +188,6 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "IP Address"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 144
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
               "options": "#"
             },
             "properties": [
@@ -208,7 +197,7 @@
               },
               {
                 "id": "custom.width",
-                "value": 60
+                "value": 50
               }
             ]
           }
@@ -306,18 +295,6 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Request"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 360
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
               "options": "#"
             },
             "properties": [
@@ -327,7 +304,7 @@
               },
               {
                 "id": "custom.width",
-                "value": 70
+                "value": 40
               }
             ]
           }
@@ -409,7 +386,8 @@
             "footer": {
               "reducers": []
             },
-            "inspect": false
+            "inspect": false,
+            "minWidth": 60
           },
           "thresholds": {
             "mode": "absolute",
@@ -430,7 +408,7 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 113
+                "value": 120
               }
             ]
           },
@@ -446,7 +424,7 @@
               },
               {
                 "id": "custom.width",
-                "value": 93
+                "value": 40
               }
             ]
           }
@@ -965,18 +943,6 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "User Agent"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 599
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
               "options": "#"
             },
             "properties": [
@@ -986,7 +952,7 @@
               },
               {
                 "id": "custom.width",
-                "value": 61
+                "value": 40
               }
             ]
           }
@@ -1084,18 +1050,6 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Referrer"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 595
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
               "options": "#"
             },
             "properties": [
@@ -1105,7 +1059,7 @@
               },
               {
                 "id": "custom.width",
-                "value": 63
+                "value": 50
               }
             ]
           }
