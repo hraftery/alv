@@ -29,7 +29,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
+            "mode": "palette-classic-by-name"
           },
           "custom": {
             "axisBorderShow": false,
@@ -75,7 +75,28 @@
             ]
           },
           "unit": "short"
-        }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [8, 8],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 9,
@@ -113,9 +134,22 @@
           "queryType": "statsRange",
           "refId": "A",
           "step": ""
+        },
+        {
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
+          },
+          "editorMode": "code",
+          "expr": "{service_name=\"access_log\", server_name=~\"$server\"} | stats by (server_name) count_uniq(remote_addr) as requests | math requests * 3600000 / $__interval_ms as requests",
+          "legendFormat": "{{server_name}}",
+          "maxLines": 50,
+          "queryType": "statsRange",
+          "refId": "B",
+          "step": ""
         }
       ],
-      "title": "Hit History",
+      "title": "Hits (solid) & Visitors (dashed)",
       "type": "timeseries"
     },
     {
@@ -800,7 +834,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
+            "mode": "palette-classic-by-name"
           },
           "custom": {
             "axisBorderShow": false,
@@ -1378,19 +1412,20 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
+            "mode": "palette-classic-by-name"
           },
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
                 "color": "green",
-                "value": 0
+                "value": null
               }
             ]
           },
           "unit": "short"
-        }
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 9,
@@ -1406,11 +1441,9 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [
-            "sum"
-          ],
+          "calcs": [],
           "fields": "",
-          "values": false
+          "values": true
         },
         "showPercentChange": false,
         "textMode": "auto",
@@ -1424,12 +1457,24 @@
             "uid": "victorialogs"
           },
           "editorMode": "code",
-          "expr": "{service_name=\"access_log\", server_name=~\"$server\"} | stats by (server_name) count() as total",
+          "expr": "{service_name=\"access_log\", server_name=~\"$server\"} | stats by (server_name) count() as requests",
           "legendFormat": "{{server_name}}",
           "maxLines": 50,
           "queryType": "statsRange",
           "refId": "A",
           "step": ""
+        }
+      ],
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "reducers": ["sum"]
+          }
+        },
+        {
+          "id": "rowsToFields",
+          "options": {}
         }
       ],
       "title": "Total Hits",
