@@ -19,7 +19,6 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
-  "links": [],
   "liveNow": false,
   "panels": [
     {
@@ -116,6 +115,11 @@
           "multiLane": false
         },
         "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "enableFacetedFilter": false,
+          "overflow": "ellipsis",
+          "placement": "bottom",
           "showLegend": false
         },
         "tooltip": {
@@ -170,13 +174,13 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
           "unit": "short"
-        },
-        "overrides": []
+        }
       },
       "gridPos": {
         "h": 9,
@@ -596,8 +600,7 @@
               }
             ]
           }
-        },
-        "overrides": []
+        }
       },
       "gridPos": {
         "h": 9,
@@ -940,8 +943,7 @@
             ]
           },
           "unit": "decbytes"
-        },
-        "overrides": []
+        }
       },
       "gridPos": {
         "h": 9,
@@ -1226,8 +1228,7 @@
             ]
           },
           "unit": "short"
-        },
-        "overrides": []
+        }
       },
       "gridPos": {
         "h": 4,
@@ -1273,6 +1274,52 @@
     },
     {
       "datasource": {
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
+      },
+      "description": "Nginx error log entries. Filtered by $server where available — non-request errors (startup, config reload) do not carry server_name and will only appear when All is selected.",
+      "gridPos": {
+        "h": 8,
+        "w": 21,
+        "x": 3,
+        "y": 36
+      },
+      "id": 10,
+      "options": {
+        "dedupStrategy": "none",
+        "enableInfiniteScrolling": false,
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showControls": false,
+        "showFieldSelector": false,
+        "showLabels": false,
+        "showLevel": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "timestampResolution": "ms",
+        "unwrappedColumns": false,
+        "wrapLogMessage": false
+      },
+      "pluginVersion": "13.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
+          },
+          "editorMode": "code",
+          "expr": "{service_name=\"error_log\", server_name=~\"$server\"}",
+          "maxLines": 50,
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Error Log",
+      "type": "logs"
+    },
+    {
+      "datasource": {
         "type": "mixed",
         "uid": "-- Mixed --"
       },
@@ -1301,14 +1348,13 @@
             ]
           },
           "unit": "percent"
-        },
-        "overrides": []
+        }
       },
       "gridPos": {
-        "h": 8,
+        "h": 4,
         "w": 3,
-        "x": 3,
-        "y": 36
+        "x": 0,
+        "y": 40
       },
       "id": 11,
       "options": {
@@ -1396,52 +1442,6 @@
       ],
       "title": "Error Rate",
       "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "victoriametrics-logs-datasource",
-        "uid": "victorialogs"
-      },
-      "description": "Nginx error log entries. Filtered by $server where available — non-request errors (startup, config reload) do not carry server_name and will only appear when All is selected.",
-      "gridPos": {
-        "h": 8,
-        "w": 18,
-        "x": 6,
-        "y": 36
-      },
-      "id": 10,
-      "options": {
-        "dedupStrategy": "none",
-        "enableInfiniteScrolling": false,
-        "enableLogDetails": true,
-        "prettifyLogMessage": false,
-        "showCommonLabels": false,
-        "showControls": false,
-        "showFieldSelector": false,
-        "showLabels": false,
-        "showLevel": true,
-        "showTime": true,
-        "sortOrder": "Descending",
-        "timestampResolution": "ms",
-        "unwrappedColumns": false,
-        "wrapLogMessage": false
-      },
-      "pluginVersion": "13.1.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "victoriametrics-logs-datasource",
-            "uid": "victorialogs"
-          },
-          "editorMode": "code",
-          "expr": "{service_name=\"error_log\", server_name=~\"$server\"}",
-          "maxLines": 50,
-          "queryType": "range",
-          "refId": "A"
-        }
-      ],
-      "title": "Error Log",
-      "type": "logs"
     }
   ],
   "preload": false,
@@ -1493,8 +1493,7 @@
   "timepicker": {},
   "timezone": "browser",
   "title": "alv - Access Log Visualiser",
-  "weekStart": "",
-  "version": 65,
+  "version": 67,
   "uid": "alv-access-log",
   "id": 2426830654283776
 }
