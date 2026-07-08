@@ -1,3 +1,7 @@
+## v2.3.3
+
+- Suppress Grafana warning about "items dropped".
+
 ## v2.3.2
 
 - Shrink unnecessarily wide table columns.
