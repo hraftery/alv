@@ -1382,7 +1382,7 @@
             "uid": "victorialogs"
           },
           "editorMode": "code",
-          "expr": "{service_name=\"access_log\", status=~\"[45]..\", server_name=~\"$server\"} | stats count() as errors",
+          "expr": "{service_name=\"access_log\", status=~\"[45]..\", server_name=~\"$server\"} | stats count() as value",
           "hide": true,
           "maxLines": 50,
           "queryType": "statsRange",
@@ -1395,7 +1395,7 @@
             "uid": "victorialogs"
           },
           "editorMode": "code",
-          "expr": "{service_name=\"access_log\", server_name=~\"$server\"} | stats count() as total",
+          "expr": "{service_name=\"access_log\", server_name=~\"$server\"} | stats count() as value",
           "hide": true,
           "maxLines": 50,
           "queryType": "statsRange",
