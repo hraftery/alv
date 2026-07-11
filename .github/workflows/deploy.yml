@@ -68,17 +68,13 @@ jobs:
       
       - name: Import historical logs
         if: inputs.ingest_history
-        # Alloy is designed to monitor a file for new logs continuously. To seed the loki
+        # Alloy is designed to monitor a file for new logs continuously. To seed the log
         # database with the rotated log files already on disk, we need a temporary instance
         # that just processes the existing files. Since logs must be processed chronologically
         # (otherwise the chunk span is too big, or we have to increase cardinality with
-        # multiple streams), concatenate all the historical logs into a single file first.
-        # The production containers will then be run, substituting the historical log file
-        # for the real access.log, and the ingestion will start. There's no great way to
-        # detect it has finished, so this is a good opportunity to manually look around to see
-        # if everything is in order. You can poll VictoriaLogs' ingested line count with
-        # `curl -sf http://localhost:9428/metrics | grep "^vl_rows_ingested_total"` and wait
-        # for it to settle. Grafana is also accessible at http://localhost:3000
+        # multiple streams), we concatenate all the historical logs into a single file first.
+        # The system will then be run as normal, except with "compose.historical.yml" overlaid
+        # to substute the historical log file for the real access.log, and ingestion will begin.
         run: |
           ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes \
             ${{ env.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
@@ -92,7 +88,7 @@ jobs:
 
       - name: Start live services
         if: github.event_name == 'push' || !inputs.ingest_history
-        # Start or restart the services without HISTORICAL_LOG set, so they run as normal.
+        # Start or restart the services as normal.
         # If historical log files exist, a previous Ingest History run is still in progress
         # (or was interrupted). Tear it down cleanly before starting the live services.
         run: |
