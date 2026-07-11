@@ -13,7 +13,7 @@
 	- Out of the box, `alv` expects logs in the [`vhost_combined`](https://gorbe.io/posts/nginx/logging/#vhost-combined) format, and will categorise logs by their virtual host. Adjusting to your preferred log format is straightforward.
 - Docker installed on the server, with the Compose plugin.
 - A MaxMind account to download the [GeoLite2-City](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data) database for data geolocation.
-- A minimum of 1GB of RAM available.
+- At least 1GB of RAM available.
 
 ## Usage
 
@@ -21,13 +21,15 @@
 
 1. getting the necessary files on to the server,
 1. (optional) ingesting historical logs, and
-1. bringing up the system (or reloading after an update).
+1. bringing up the live system (or reloading it after an update).
 
 Alternatively, `alv` can be run **manually**, directly from the source folder. The [deploy workflow](.github/workflows/deploy.yml) is still the best place to learn how to perform the three steps above. The GitHub secrets and initial `rsync` will be unnecessary.
 
 A **test environment** is also available to evaluate the system before deployment and is good place to start. Skip to the [Testing section](#testing) for further details.
 
 ### Automatic Deployment
+
+Start by forking the project so you have your own copy to run GitHub Actions on.
 
 The deploy workflow `rsync`s the repo to `/opt/alv` on your server, downloads a fresh GeoLite2 database to geolocate the access data, and brings up the system on the server.
 
@@ -83,9 +85,9 @@ To seed the log database with logs from files that have already been rotated, ru
 gh workflow run deploy.yml -f ingest_history=true
 ```
 
-The `workflow run` command only triggers the workflow. While `gh run watch` can be used to view the output, the website is a much better interface. Open the URL that the `workflow run` command provides to see the workflow result.
+The `workflow run` command only triggers the workflow. While `gh run watch` can be used to view the progress, the website is a much better interface. Open the URL that the `workflow run` command provides to see the workflow result.
 
-Just like a normal deployment, this syncs files and downloads the GeoLite2 database. It then concatenates rotated access logs it finds on the server into a historical file, and then brings up the system to ingest it instead of the live access log.
+Just like a normal deployment, the `ingest_history` workflow syncs files and downloads the GeoLite2 database. It then concatenates rotated access logs it finds on the server into a historical file, and then brings up the system to ingest that file instead of the live access log.
 
 There's no great way to detect the import has finished, so this is a good opportunity to manually look around to see if everything is in order. Verify the three `alv` containers are up and running:
 
@@ -94,8 +96,7 @@ There's no great way to detect the import has finished, so this is a good opport
 docker ps
 ```
 
-
-You can poll the line count ingested by VictoriaLogs with something like this, and wait for the count to settle:
+And poll the line count ingested by VictoriaLogs with something like this, waiting for the count to settle:
 
 ```sh
 # Must be run on the server
