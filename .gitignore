@@ -1,3 +1,5 @@
 test/seed/
 initial_error.log
 alloy/GeoLite2-City.mmdb
+# Server-side configuration sourced by alv.sh, e.g. MaxMind credentials.
+.env

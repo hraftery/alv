@@ -8,9 +8,14 @@ services:
       - "12345:12345"
     # Entrypoint so we can insert a delay to give nginx time to set up the log files.
     entrypoint: ["/bin/sh", "-c", "sleep 2 && exec alloy run --server.http.listen-addr=0.0.0.0:12345 /etc/alloy/config.alloy"]
-    # Note this will shadow the /var/log/nginx mounts set in the base compose.yml file.
+    # Note these will shadow the /var/log/nginx and GeoLite2-City.mmdb mounts set in the
+    # base compose.yml file. The base file assumes the host has active nginx logs and a
+    # full GeoIP database downloaded to use. For test, we provide (generated) dummy logs
+    # and a test database (from Apache-2.0 licensed https://github.com/maxmind/MaxMind-DB)
+    # so no MaxMind account is needed to run the test environment.
     volumes:
       - nginx-logs:/var/log/nginx:ro
+      - ../alloy/GeoLite2-City-Test.mmdb:/etc/alloy/GeoLite2-City.mmdb:ro
 
   log-init:
     # Create the initial access.log and error.log files so the database can be seeded with

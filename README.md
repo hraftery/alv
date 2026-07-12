@@ -12,7 +12,7 @@
    - `alv` only interacts with the log files, so is web server agnostic. Changing the log path to suit a different web server is straightforward.
 	- Out of the box, `alv` expects logs in the [`vhost_combined`](https://gorbe.io/posts/nginx/logging/#vhost-combined) format, and will categorise logs by their virtual host. Adjusting to your preferred log format is straightforward.
 - Docker installed on the server, with the Compose plugin.
-- A MaxMind account to download the [GeoLite2-City](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data) database for data geolocation.
+- (Optional) A MaxMind account to download the [GeoLite2-City](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data) database for data geolocation. Without one, `alv` still works but the geolocation panels will be empty — copy the bundled test database into place instead: `cp alloy/GeoLite2-City-Test.mmdb alloy/GeoLite2-City.mmdb`.
 - At least 1GB of RAM available.
 
 ## Usage
@@ -125,9 +125,7 @@ Named Docker volumes (`victorialogs-data`, `grafana-data`) survive `docker compo
 
 ## Testing
 
-### Preparation
-
-Download the [GeoLite2-City](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data) database and move it to `alloy/GeoLite2-City.mmdb`.
+No preparation is required — the test environment uses a bundled [test GeoIP database](https://github.com/maxmind/MaxMind-DB) (Apache 2.0), so no MaxMind account is needed to evaluate `alv`.
 
 ### Ingest History
 

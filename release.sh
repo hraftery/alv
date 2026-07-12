@@ -60,6 +60,15 @@ fi
 ########################################
 # Update release notes, commit and tag #
 
+# Bake the version into the dashboard title — a convenient place for the user to spot
+# the running version. The pattern also matches an already-stamped title, so re-saving
+# the dashboard from a Grafana export is safe. alv.sh re-stamps the title at run time
+# if the deployed checkout doesn't match the baked release.
+dashboard=grafana/provisioning/dashboards/access-log.json
+sed "s/alv[^\"]* Access Log Visualiser/alv ${version} - Access Log Visualiser/" \
+  "$dashboard" > "$dashboard.tmp"
+mv "$dashboard.tmp" "$dashboard"
+
 {
   echo "## $version"
   echo
@@ -69,7 +78,7 @@ fi
 } > RELEASE_NOTES.md.tmp
 mv RELEASE_NOTES.md.tmp RELEASE_NOTES.md
 
-git add RELEASE_NOTES.md
+git add RELEASE_NOTES.md "$dashboard"
 git commit -m "Release $version"
 git tag -f -a "$version" -m "$release_notes"
 

@@ -11,6 +11,10 @@ on:
         type: boolean
         default: false
 
+# This workflow only copies the files to the server and runs alv.sh there, so
+# automated deployments and manual clones share one code path. See alv.sh for
+# the actual deployment logic.
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -24,15 +28,11 @@ jobs:
         with:
           fetch-tags: true
 
-      - name: Inject version into dashboard title
-        # Tags are used to indicate releases, so if the latest commit has a tag, use that
-        # If not, we're deploying an unreleased version, so use the SHA. Even though the
-        # version refers to the whole stack, put it in the name of the dashboard as a
-        # convenient place for the user to spot it.
+      - name: Determine version
+        # The synced files exclude .git, so alv.sh can't derive the version on the
+        # server. Compute it here and pass it through instead.
         run: |
-          ALV_VERSION=$(git describe --tags --exact-match 2>/dev/null || git rev-parse --short HEAD)
-          sed -i "s/alv - Access Log Visualiser/alv ${ALV_VERSION} - Access Log Visualiser/" \
-            grafana/provisioning/dashboards/access-log.json
+          echo "ALV_VERSION=$(git describe --tags --exact-match 2>/dev/null || git rev-parse --short HEAD)" >> "$GITHUB_ENV"
 
       - name: Write SSH key
         run: |
@@ -41,63 +41,26 @@ jobs:
           echo "${{ secrets.DEPLOY_KNOWN_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Sync files
+        # .env is server-side state, protected from --delete.
         run: |
           rsync -az --delete \
             --exclude='.git/' \
             --exclude='.github/' \
             --exclude='test/' \
+            --exclude='.env' \
             -e "ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes" \
             . \
             ${{ env.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ env.DEPLOY_PATH }}
 
-      - name: Download GeoLite2 database
-        # Download a new db every deploy. Handy way to keep up to date, and while we could check
-        # the LastModified date to avoid unnecessary replacements, the hard work is done
-        # contacting the server anyway, so the download and untar is relatively minor given how
-        # infrequently this will happen. Here's the tar command breakdown:
-        # tar -xz                    : extract and decompress gzip
-        #     --strip-components=1   : remove "GeoLite2-City_20260601" enclosing directory
-        #     -C /opt/alv/alloy/     : put it here
-        #     '*.mmdb'               : only the mmdb file, ignore the README etc.
+      - name: Run alv.sh on the server
+        # "ingest-history" seeds the database from rotated logs; "up" starts or
+        # restarts the live services. The MaxMind credentials are optional — without
+        # them alv.sh falls back to a bundled test database (see alv.sh ensure_geodb).
         run: |
           ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes \
             ${{ env.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            "curl -sL -u '${{ secrets.MAXMIND_ACCOUNT_ID }}:${{ secrets.MAXMIND_LICENSE_KEY }}' \
-              'https://download.maxmind.com/geoip/databases/GeoLite2-City/download?suffix=tar.gz' \
-              | tar -xz --strip-components=1 -C /opt/alv/alloy/ --wildcards '*.mmdb'"
-      
-      - name: Import historical logs
-        if: inputs.ingest_history
-        # Alloy is designed to monitor a file for new logs continuously. To seed the log
-        # database with the rotated log files already on disk, we need a temporary instance
-        # that just processes the existing files. Since logs must be processed chronologically
-        # (otherwise the chunk span is too big, or we have to increase cardinality with
-        # multiple streams), we concatenate all the historical logs into a single file first.
-        # The system will then be run as normal, except with "compose.historical.yml" overlaid
-        # to substute the historical log file for the real access.log, and ingestion will begin.
-        run: |
-          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes \
-            ${{ env.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            '{ ls -tr /var/log/nginx/access.log.*.gz 2>/dev/null | xargs zcat; \
-             cat /var/log/nginx/access.log.1 2>/dev/null; } > /tmp/historical_access.log && \
-             { ls -tr /var/log/nginx/error.log.*.gz 2>/dev/null | xargs zcat; \
-             cat /var/log/nginx/error.log.1 2>/dev/null; } > /tmp/historical_error.log'
-          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes \
-            ${{ env.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            "cd ${{ env.DEPLOY_PATH }} && docker compose -f compose.yml -f compose.historical.yml up -d"
-
-      - name: Start live services
-        if: github.event_name == 'push' || !inputs.ingest_history
-        # Start or restart the services as normal.
-        # If historical log files exist, a previous Ingest History run is still in progress
-        # (or was interrupted). Tear it down cleanly before starting the live services.
-        run: |
-          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes \
-            ${{ env.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            "if ls /tmp/historical_*.log 2>/dev/null; then
-               cd ${{ env.DEPLOY_PATH }} && docker compose -f compose.yml -f compose.historical.yml down &&
-               rm /tmp/historical_*.log
-             fi"
-          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes \
-            ${{ env.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            "cd ${{ env.DEPLOY_PATH }} && docker compose up -d"
+            "cd ${{ env.DEPLOY_PATH }} && \
+             ALV_VERSION='${{ env.ALV_VERSION }}' \
+             MAXMIND_ACCOUNT_ID='${{ secrets.MAXMIND_ACCOUNT_ID }}' \
+             MAXMIND_LICENSE_KEY='${{ secrets.MAXMIND_LICENSE_KEY }}' \
+             ./alv.sh ${{ inputs.ingest_history && 'ingest-history' || 'up' }}"
