@@ -3,6 +3,7 @@
 
 import argparse
 import gzip
+import ipaddress
 import os
 from random import randint, choice, uniform
 from datetime import datetime, timedelta, timezone
@@ -58,8 +59,34 @@ BODY_SIZES = {
 REQUEST_POOL = [(f"{m} {p} HTTP/1.1", s) for m, p, s, w in REQUESTS for _ in range(w)]
 
 
+# The IPv4 networks present in the bundled GeoLite2 test database (from
+# https://github.com/maxmind/MaxMind-DB source-data), so that generated traffic
+# geolocates and populates the map panel. The mappings are fabricated, but the
+# locations are real.
+GEO_NETWORKS = [
+    ipaddress.ip_network(net) for net in (
+        "2.125.160.216/29",  # Boxford, United Kingdom
+        "67.43.156.0/24",    # Bhutan
+        "81.2.69.144/28",    # London, United Kingdom
+        "81.2.69.160/27",    # London, United Kingdom
+        "81.2.69.192/28",    # London, United Kingdom
+        "89.160.20.112/28",  # Linköping, Sweden
+        "89.160.20.128/25",  # Linköping, Sweden
+        "175.16.199.0/24",   # Changchun, China
+        "202.196.224.0/20",  # Philippines
+        "214.78.0.0/19",     # San Diego, United States
+        "216.160.83.56/29",  # Milton, United States
+    )
+]
+
+
 def random_ip():
-    return f"{randint(1, 254)}.{randint(0, 255)}.{randint(0, 255)}.{randint(1, 254)}"
+    # 1 in 4 is entirely random and so almost certainly won't geolocate against the
+    # test database, simulating the real-world portion of unlocatable traffic.
+    if randint(1, 4) == 4:
+        return f"{randint(1, 254)}.{randint(0, 255)}.{randint(0, 255)}.{randint(1, 254)}"
+    net = choice(GEO_NETWORKS)
+    return str(net.network_address + randint(1, net.num_addresses - 2))
 
 
 def body_size(status):
