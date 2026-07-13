@@ -74,6 +74,8 @@ _ensure_geodb()
   # (however the user obtained it) is left alone, or if there is none the bundled
   # test db is used to keep the pipeline running albeit without meaningful geolocation.
   if _have_maxmind_creds; then
+    # Status messages go to stderr: stdout is reserved for command output (see 'version').
+    echo "Downloading a fresh GeoLite2-City database (can take a minute)..." >&2
     _update_geodb
   elif [ ! -f "$GEODB_PATH" ]; then
     echo "No MaxMind credentials and no $GEODB_PATH: falling back to the test database." >&2
@@ -121,6 +123,9 @@ cmd_ingest_history()
   # multiple streams), we concatenate all the historical logs into a single file first.
   # The system is then run as normal, except with "compose.historical.yml" overlaid to
   # substitute the historical log file for the real access.log.
+  echo "" >&2
+  echo "Concatenating rotated logs into historical files..." >&2
+
   { ls -tr /var/log/nginx/access.log.*.gz 2>/dev/null | xargs zcat 2>/dev/null || true
     cat /var/log/nginx/access.log.1 2>/dev/null || true
   } > /tmp/historical_access.log
@@ -130,7 +135,16 @@ cmd_ingest_history()
 
   _ensure_geodb
   _stamp_version
+
+  echo "" >&2
+  echo "Bringing up the system to ingest the historical logs..." >&2
+
   docker compose -f compose.yml -f compose.historical.yml up -d
+
+  echo "" >&2
+  echo "Ingestion has begun. Follow the count with:" >&2
+  echo "  curl -sf http://localhost:9428/metrics | grep '^vl_rows_ingested_total'" >&2
+  echo "Once it settles, run '$0 up' to switch to the live logs." >&2
 }
 
 cmd_up()
@@ -140,13 +154,22 @@ cmd_up()
   # done and the services are simply stopped, the read position of the historical log
   # file will be retained and the live log files will not be read entirely.
   if ls /tmp/historical_*.log >/dev/null 2>&1; then
+    echo "" >&2
+    echo "Cleaning up after an Ingest History run..." >&2
     docker compose -f compose.yml -f compose.historical.yml down
     rm /tmp/historical_*.log
   fi
 
   _ensure_geodb
   _stamp_version
+
+  echo "" >&2
+  echo "Bringing up the live services..." >&2
+
   docker compose up -d
+
+  echo "" >&2
+  echo "alv is up. The dashboard is served on port 3000." >&2
 }
 
 cmd_update()
