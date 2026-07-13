@@ -1,3 +1,8 @@
+## v3.0.1
+
+- Widen "#" columns to show at least 6 digits.
+- Minor documentation corrections.
+
 ## v3.0.0
 
 - Add demo and manual deploy methods.
