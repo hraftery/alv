@@ -2,13 +2,13 @@
 
 *A self-contained tool to ingest, parse and visualise the access and error logs typically produced by web servers like nginx and Apache.*
 
-`alv` is based on a Grafana stack and is packaged as a Docker container. It reads the access logs from the host, stores them in a named volume, and serves the Grafana front end on port 3000.
+`alv` is based on a Grafana stack and is packaged as a Docker container. It reads the access logs from the host, stores them in a named volume, and serves the Grafana front end on port 3000. The first time you log in to Grafana, the username is `admin` and the password is `admin`, and you'll be prompted to change it.
 
 ![Screenshot](screenshot.png)
 
 ## Try It
 
-Evaluating `alv` is easy. Ensure Docker is installed, and then:
+Evaluating `alv` is easy. Ensure Docker is running, and then:
 
 ```sh
 git clone https://github.com/hraftery/alv.git
@@ -22,14 +22,14 @@ When you're finished, `./demo.sh down` removes everything, including the ingeste
 
 ## Deploying
 
-`alv` runs on the server that produces the logs. There are two ways to deploy it:
+`alv` runs on the server that produces the logs. The [alv.sh](alv.sh) script makes deployment easy. There are two ways to deploy:
 
-1. **Directly from a clone** — simple but limited. Your server runs the version of `alv` you clone, and `./alv.sh update` keeps it current.
-2. **Remotely from a fork** — for automatic deployment and your own customisations. Your fork deploys itself to your server using the built-in [deploy workflow](.github/workflows/deploy.yml), so you're free to adapt the dashboard, log formats and anything else locally, and then deploy with one command.
+1. **Directly from a clone:** simple but limited. Your server runs the version of `alv` you clone, and `./alv.sh update` keeps it current. Use this if you don't need to track your own changes.
+2. **Remotely from a fork:** for automatic deployment and your own customisations. Your fork deploys itself to your server and runs the necessary `alv.sh` commands using the built-in [deploy workflow](.github/workflows/deploy.yml). You're free to adapt the dashboard, log formats and anything else locally, and then deploy with one command.
 
-Either way, the deployment logic itself lives in [alv.sh](alv.sh) — the workflow just copies the files to the server and runs it there.
+Either way, note the [Prerequisites](#prerequisites) below and then consult either the [From a clone](#from-a-clone) or [From a fork](#from-a-fork) section.
 
-### Prerequisites
+#### Prerequisites
 
 - A web server running and logging to `/var/log/nginx` in the usual fashion.
    - `alv` only interacts with the log files, so is web server agnostic. Changing the log path to suit a different web server is straightforward.
@@ -43,27 +43,28 @@ Either way, the deployment logic itself lives in [alv.sh](alv.sh) — the workfl
 On the server, as a user that can run Docker (eg. is in the `docker` group) and read the access logs (eg. is in the `adm` group on Debian/Ubuntu):
 
 ```sh
-sudo mkdir /opt/alv && sudo chown $USER /opt/alv
-git clone https://github.com/hraftery/alv.git /opt/alv
-cd /opt/alv
+git clone https://github.com/hraftery/alv.git
+cd alv
 ./alv.sh ingest-history   # optional: seed the database from already-rotated logs. See "Ingest History" below.
 ./alv.sh up
 ```
 
-To enable geolocation, put your MaxMind credentials in a `.env` file next to `alv.sh` (see "Manage license keys" in your MaxMind account webpage) — `alv.sh` will download a fresh database each time it brings the system up:
+To enable geolocation, put your MaxMind credentials in a `.env` file next to `alv.sh`:
 
 ```sh
-MAXMIND_ACCOUNT_ID=<your account id>
-MAXMIND_LICENSE_KEY=<your license key>
+MAXMIND_ACCOUNT_ID=<your MaxMind account id>
+MAXMIND_LICENSE_KEY=<see "Manage license keys" in your MaxMind account webpage>
 ```
 
-To update to the latest release later:
+With valid credentials set, `alv.sh` will download a fresh database each time it brings the system up.
+
+To update `alv` to the latest release:
 
 ```sh
-./alv.sh update
+./alv.sh self-update
 ```
 
-Note the dashboard is machine-managed on a clone: its title carries the running version, and `./alv.sh update` **discards any local edits** to it. If you want to customise the dashboard and keep the changes, deploy from a fork instead.
+Note `./alv.sh self-update` **discards any local edits** to your dashboard. If you want to customise the dashboard and keep the changes, deploy from a fork instead.
 
 ### From a fork
 
@@ -84,7 +85,7 @@ Deployment is done from the `main` branch by default. Override by adding `--ref 
 
 Normal deployment can also be triggered by pushing to the `deploy` branch.
 
-The `workflow run` command only triggers the workflow. While `gh run watch` can be used to view the progress, the website is a much better interface. Open the URL that the `workflow run` command provides to see the workflow result.
+Note that the `workflow run` command only triggers the workflow. While `gh run watch` can be used to view the progress, the website is a much better interface. Open the URL that the `workflow run` command provides to see the workflow result.
 
 #### Preparation
 
@@ -120,7 +121,7 @@ Each step below includes an example command to complete that step. Adjust to sui
 
 ### Ingest History
 
-To seed the log database with logs from files that have already been rotated, run `./alv.sh ingest-history` (or, from a fork, the workflow with `-f ingest_history=true`) first. Because logs have to be sequential, this must be done on an empty database. Doing it as the first deployment is ideal.
+To seed the log database with logs from files that have already been rotated, first run `./alv.sh ingest-history` (for a clone deployment) or `gh workflow run deploy.yml -f ingest_history=true` (for a fork deployment). Because logs have to be sequential, this must be done on an empty database. Doing it as the first deployment is ideal.
 
 Ingest History concatenates the rotated access and error logs it finds on the server into historical files, and then brings up the system to ingest those files instead of the live logs.
 
@@ -138,11 +139,11 @@ And poll the line count ingested by VictoriaLogs with something like this, waiti
 curl -sf http://localhost:9428/metrics | grep "^vl_rows_ingested_total"
 ```
 
-Grafana is also accessible at [http://your.server.url:3000](http://your.server.url:3000). The first time you log in the username is `admin` and the password is `admin`, and you'll be prompted to change it.
+Grafana is also accessible at [http://your.server.url:3000](http://your.server.url:3000).
 
 See the [Troubleshooting section](#troubleshooting) for more suggestions.
 
-Once stable, switch to monitoring the live logs with `./alv.sh up` (or a normal deployment). `alv.sh` detects that an Ingest History run is underway and **brings the services down first**, which is necessary for the live log files to be read entirely.
+Once stable, switch to monitoring the live logs with `./alv.sh up` (for a clone deployment) or `gh workflow run deploy.yml` (for a fork deployment). Either way, `alv.sh` will detect that an Ingest History run is underway and **brings the services down first**, which is necessary for the live log files to be read entirely.
 
 ### Data persistence
 
