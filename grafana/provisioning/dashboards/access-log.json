@@ -282,7 +282,7 @@
               },
               {
                 "id": "custom.width",
-                "value": 50
+                "value": 65
               }
             ]
           }
@@ -389,7 +389,7 @@
               },
               {
                 "id": "custom.width",
-                "value": 40
+                "value": 65
               }
             ]
           }
@@ -488,18 +488,6 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Country"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 120
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
               "options": "#"
             },
             "properties": [
@@ -509,7 +497,7 @@
               },
               {
                 "id": "custom.width",
-                "value": 40
+                "value": 65
               }
             ]
           }
@@ -1037,7 +1025,7 @@
               },
               {
                 "id": "custom.width",
-                "value": 40
+                "value": 65
               }
             ]
           }
@@ -1144,7 +1132,7 @@
               },
               {
                 "id": "custom.width",
-                "value": 50
+                "value": 65
               }
             ]
           }
