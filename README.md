@@ -45,7 +45,7 @@ On the server, as a user that can run Docker (eg. is in the `docker` group) and 
 ```sh
 git clone https://github.com/hraftery/alv.git
 cd alv
-./alv.sh ingest-history   # optional: seed the database from already-rotated logs. See "Ingest History" below.
+./alv.sh ingest-history   # Optional. See "Ingest History" below.
 ./alv.sh up
 ```
 
@@ -53,7 +53,7 @@ To enable geolocation, put your MaxMind credentials in a `.env` file next to `al
 
 ```sh
 MAXMIND_ACCOUNT_ID=<your MaxMind account id>
-MAXMIND_LICENSE_KEY=<see "Manage license keys" in your MaxMind account webpage>
+MAXMIND_LICENSE_KEY=<from "Manage license keys" in your MaxMind account>
 ```
 
 With valid credentials set, `alv.sh` will download a fresh database each time it brings the system up.
@@ -89,16 +89,34 @@ Note that the `workflow run` command only triggers the workflow. While `gh run w
 
 #### Preparation
 
+Fork the project (so you have your own to run GitHub Actions on) and clone your fork locally. Then setup the fork. The steps are given in detail below, or you can just use the setup script:
+
+```sh
+./scripts/setup-fork.sh
+```
+
+It prompts for your server address, generates an SSH key pair for deployment, sets the GitHub Actions secrets on your fork, and prints a single command that completes the setup on the server. That command runs [scripts/setup-server.sh](scripts/setup-server.sh) **as root** (you may be prompted to authorise `sudo`). Feel free to read the script first. It creates the `alv` user, authorises the deploy key, and creates `/opt/alv`.
+
+Both scripts are safe to re-run.
+
+<details>
+<summary>The manual steps, if you'd rather not run the scripts</summary>
+
 Each step below includes an example command to complete that step. Adjust to suit your environment as required.
 
 1. On your local computer:
-    1. Fork the project so you have your own to run GitHub Actions on, and clone it locally.
     1. Create a passwordless SSH key pair for `alv` (or pick an existing pair to use).
         - `ssh-keygen -t ed25519 -C "alv - Access Log Visualiser" -f ~/.ssh/id_alv -N ""`
             - `-t ed25519` is the modern standard for public-key cryptography
             - `-C` adds an optional comment string
             - `-f` specifies the filename for the private key (the public key file will have a `.pub` suffix)
             - `-N ""` disables the passphrase
+1. In your GitHub account, add the following GitHub Actions secrets (with `gh secret set <SECRET_NAME>`, or on the GitHub website via Settings → Secrets → Actions):
+    - `DEPLOY_HOST`: your server's hostname or IP address.
+    - `DEPLOY_KNOWN_HOST`: output of `ssh-keyscan -t ed25519 your-server`, assuming you've added the server as a known host locally.
+    - `DEPLOY_SSH_KEY`: the private key from key pair created in Step 1. Include the "-----BEGIN OPENSSH PRIVATE KEY-----" and "-----BEGIN END PRIVATE KEY-----" lines. For example:
+        - `gh secret set DEPLOY_SSH_KEY < ~/.ssh/id_alv`.
+    - (Optional) `MAXMIND_ACCOUNT_ID` and `MAXMIND_LICENSE_KEY`: to enable geolocation. Generate the license key via "Manage license keys" in your MaxMind account webpage.
 1. On the server:
     1. Create the `alv` user. Add it to the `adm` group so it can read logs created by nginx, and the `docker` group so it can run docker without sudo.
         - For example, `sudo useradd -m -G adm,docker alv`.
@@ -112,12 +130,8 @@ Each step below includes an example command to complete that step. Adjust to sui
         - `sudo chmod 600 /home/alv/.ssh/authorized_keys && sudo chown -R alv:alv /home/alv/.ssh`
     1. Finally, create `/opt/alv`, owned by `alv`.
         - `sudo mkdir -p /opt/alv && sudo chown alv:alv /opt/alv`.
-1. In your GitHub account, add the following GitHub Actions secrets (with `gh secret set <SECRET_NAME>`, or on the GitHub website via Settings → Secrets → Actions):
-    - `DEPLOY_HOST`: your server's hostname or IP address.
-    - `DEPLOY_KNOWN_HOST`: output of `ssh-keyscan -t ed25519 your-server`, assuming you've added the server as a known host locally.
-    - `DEPLOY_SSH_KEY`: the private key from key pair created in Step 1. Include the "-----BEGIN OPENSSH PRIVATE KEY-----" and "-----BEGIN END PRIVATE KEY-----" lines. For example:
-        - `gh secret set DEPLOY_SSH_KEY < ~/.ssh/id_alv`.
-    - (Optional) `MAXMIND_ACCOUNT_ID` and `MAXMIND_LICENSE_KEY`: to enable geolocation. Generate the license key via "Manage license keys" in your MaxMind account webpage.
+
+</details>
 
 ### Ingest History
 
