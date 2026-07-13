@@ -25,6 +25,9 @@ Commands:
   up              Start (or restart) the live services. Cleans up after an
                   Ingest History run first, if one is found.
   down            Stop the services. Data survives in the named volumes.
+  wipe            Stop the services and DELETE ALL DATA: the ingested logs and
+                  any Grafana customisations. Ingest History can be run afresh
+                  afterwards.
   self-update     For the clone workflow only. Pull the latest mainline and restart
                   the live services. Discards any local edits to the dashboard.
 EOF
@@ -165,6 +168,18 @@ cmd_down()
   docker compose -f compose.yml -f compose.historical.yml down
 }
 
+cmd_wipe()
+{
+  # Removing the named volumes empties the database (and Grafana's state), returning
+  # the system to a blank slate where Ingest History can be run again.
+  read -rp "Delete all ingested data and any Grafana customisations? [y/N] " reply
+  if [[ "$reply" != "y" && "$reply" != "Y" ]]; then
+    echo "Aborted."
+    exit 1
+  fi
+  docker compose -f compose.yml -f compose.historical.yml down -v
+}
+
 case "${1:-}" in
   version)        cmd_version ;;
   update-geodb)   _have_maxmind_creds || { echo "MAXMIND_ACCOUNT_ID and MAXMIND_LICENSE_KEY are required." >&2; exit 1; }
@@ -173,6 +188,7 @@ case "${1:-}" in
   ingest-history) cmd_ingest_history ;;
   up)             cmd_up ;;
   down)           cmd_down ;;
+  wipe)           cmd_wipe ;;
   self-update)    cmd_update ;;
   *)              usage ;;
 esac
