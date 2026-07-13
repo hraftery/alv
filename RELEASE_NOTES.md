@@ -1,3 +1,8 @@
+## v3.0.0
+
+- Add demo and manual deploy methods.
+- Re-arrange README to suit on-boarding a new user.
+
 ## v2.3.3
 
 - Suppress Grafana warning about "items dropped".
