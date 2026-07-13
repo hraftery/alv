@@ -29,10 +29,11 @@ jobs:
           fetch-tags: true
 
       - name: Determine version
-        # The synced files exclude .git, so alv.sh can't derive the version on the
-        # server. Compute it here and pass it through instead.
+        # The synced files exclude .git, so alv.sh can't derive the version on the server.
+        # Determine it here in the runner instead, where .git exists, and add it to our env
+        # so we can pass it through via the "Run alv.sh on the server" step.
         run: |
-          echo "ALV_VERSION=$(git describe --tags --exact-match 2>/dev/null || git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+          echo "ALV_VERSION=$(./alv.sh version)" >> "$GITHUB_ENV"
 
       - name: Write SSH key
         run: |
@@ -41,7 +42,7 @@ jobs:
           echo "${{ secrets.DEPLOY_KNOWN_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Sync files
-        # .env is server-side state, protected from --delete.
+        # .env is server-side state, so protect it from --delete.
         run: |
           rsync -az --delete \
             --exclude='.git/' \
@@ -55,7 +56,7 @@ jobs:
       - name: Run alv.sh on the server
         # "ingest-history" seeds the database from rotated logs; "up" starts or
         # restarts the live services. The MaxMind credentials are optional — without
-        # them alv.sh falls back to a bundled test database (see alv.sh ensure_geodb).
+        # them alv.sh falls back to a bundled test database (see alv.sh _ensure_geodb).
         run: |
           ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes \
             ${{ env.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
