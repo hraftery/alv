@@ -74,8 +74,8 @@ echo "Bringing up the demo..."
 
 $compose_test up -d
 
-# An OSC 8 escape sequence makes the URL clickable in supporting terminals. Others
-# just show the plain URL text. On macos, it looks plain but cmd-click will open it.
+# An OSC 8 escape sequence makes the URL clickable in supporting terminals. Others just
+# show the plain URL text. On macos, it looks plain but cmd+double-click will open it.
 url=$'\e]8;;http://localhost:3000\e\\http://localhost:3000\e]8;;\e\\'
 
 echo ""
