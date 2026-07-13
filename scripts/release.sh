@@ -8,6 +8,8 @@ set -e
 # creating the tag. Use it instead of editing RELEASE_NOTES.md or creating tags.      #
 #######################################################################################
 
+# Execute all commands from the repo root.
+cd "$(dirname "$0")/.."
 
 ##################################
 # Ask user for version bump type #
