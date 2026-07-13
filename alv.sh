@@ -168,6 +168,15 @@ cmd_up()
 
   docker compose up -d
 
+  # Grafana isn't ready as soon as the container is up. Especially on first boot when
+  # it also downloads the datasource plugin (GF_INSTALL_PLUGINS). So wait for its
+  # health endpoint before declaring victory.
+  echo "" >&2
+  echo "Waiting for Grafana to become responsive (can take a minute or so)..." >&2
+  until curl -sf http://localhost:3000/api/health >/dev/null; do
+    sleep 0.5
+  done
+
   echo "" >&2
   echo "alv is up. The dashboard is served on port 3000." >&2
 }

@@ -74,6 +74,15 @@ echo "Bringing up the demo..."
 
 $compose_test up -d
 
+# Grafana isn't ready as soon as the container is up. Especially on first boot when
+# it also downloads the datasource plugin (GF_INSTALL_PLUGINS). So wait for its
+# health endpoint before telling the user to open the URL.
+echo ""
+echo "Waiting for Grafana to become responsive (can take a minute or so)..."
+until curl -sf http://localhost:3000/api/health >/dev/null; do
+  sleep 0.5
+done
+
 # An OSC 8 escape sequence makes the URL clickable in supporting terminals. Others just
 # show the plain URL text. On macos, it looks plain but cmd+double-click will open it.
 url=$'\e]8;;http://localhost:3000\e\\http://localhost:3000\e]8;;\e\\'
