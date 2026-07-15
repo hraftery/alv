@@ -8,7 +8,7 @@
 
 ## Try It
 
-Evaluating `alv` is easy. Ensure Docker is running, and then:
+Evaluating `alv` is easy. Ensure Docker is running on your computer, and then:
 
 ```sh
 git clone https://github.com/hraftery/alv.git
@@ -16,18 +16,18 @@ cd alv
 ./demo.sh
 ```
 
-The demo generates a few weeks of synthetic web traffic, ingests it, then starts a local nginx and a traffic generator so new entries keep flowing. When it finishes, open [http://localhost:3000](http://localhost:3000) (no login required) and find the dashboard under "Dashboards" in the menu on the left hand side.
+The demo generates a few weeks of synthetic web traffic, ingests it, then starts a local nginx and a traffic generator so new entries keep flowing. When it finishes loading, open [http://localhost:3000](http://localhost:3000) (no login required) and find the dashboard under "Dashboards" in the menu on the left hand side.
 
-When you're finished, `./demo.sh down` removes everything, including the ingested data.
+When you're finished, `./demo.sh down` shuts down and removes everything except the clone itself.
 
 ## Deploying
 
-`alv` runs on the server that produces the logs. The [alv.sh](alv.sh) script makes deployment easy. There are two ways to deploy:
+In production, `alv` runs on the server that produces the logs. The [alv.sh](alv.sh) script makes deployment easy. There are two ways to deploy:
 
-1. **Directly from a clone:** simple but limited. Your server runs the version of `alv` you clone, and `./alv.sh update` keeps it current. Use this if you don't need to track your own changes.
-2. **Remotely from a fork:** for automatic deployment and your own customisations. Your fork deploys itself to your server and runs the necessary `alv.sh` commands using the built-in [deploy workflow](.github/workflows/deploy.yml). You're free to adapt the dashboard, log formats and anything else locally, and then deploy with one command.
+1. **Directly from a clone:** simple but limited. The server runs the version of `alv` you clone, and `./alv.sh self-update` keeps it current. Use this if you don't need to track your own changes.
+2. **Remotely from a fork:** for automatic deployment and your own customisations. Your fork deploys itself to the server and runs the necessary `alv.sh` commands using the built-in [deploy workflow](.github/workflows/deploy.yml). You're free to adapt the dashboard, log formats and anything else locally, and then deploy with one command.
 
-Either way, note the [Prerequisites](#prerequisites) below and then consult either the [From a clone](#from-a-clone) or [From a fork](#from-a-fork) section.
+Either way, note the **Prerequisites** below and then consult either the [Directly from a clone](#directly-from-a-clone) or [Remotely from a fork](#remotely-from-a-fork) section.
 
 #### Prerequisites
 
@@ -38,7 +38,7 @@ Either way, note the [Prerequisites](#prerequisites) below and then consult eith
 - At least 1GB of RAM available.
 - (Optional) A MaxMind account to download the [GeoLite2-City](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data) database for data geolocation. Without one, `alv` falls back to the bundled test database and geolocation will not be accurate.
 
-### From a clone
+### Directly From A Clone
 
 On the server, as a user that can run Docker (eg. is in the `docker` group) and read the access logs (eg. is in the `adm` group on Debian/Ubuntu):
 
@@ -49,14 +49,14 @@ cd alv
 ./alv.sh up
 ```
 
-To enable geolocation, put your MaxMind credentials in a `.env` file next to `alv.sh`:
+To enable geolocation, put your MaxMind credentials in a `.env` file next to `alv.sh` before running it:
 
 ```sh
 MAXMIND_ACCOUNT_ID=<your MaxMind account id>
 MAXMIND_LICENSE_KEY=<from "Manage license keys" in your MaxMind account>
 ```
 
-With valid credentials set, `alv.sh` will download a fresh database each time it brings the system up.
+With valid credentials set, `alv.sh` will download a fresh database each time it brings the system up. Geolocation happens on ingest, so the database must be present before bringing the system up.
 
 To update `alv` to the latest release:
 
@@ -64,43 +64,45 @@ To update `alv` to the latest release:
 ./alv.sh self-update
 ```
 
-Note `./alv.sh self-update` **discards any local edits** to your dashboard. If you want to customise the dashboard and keep the changes, deploy from a fork instead.
+Note `./alv.sh self-update` preserves your data, but **discards any local edits** to your dashboard. If you want to customise the dashboard and keep the changes, deploy from a fork instead.
 
-### From a fork
+### Remotely From A Fork
 
-`alv` is designed to **automatically deploy** to your server using the built-in [deploy workflow](.github/workflows/deploy.yml). It takes care of:
+`alv` can **automatically deploy** to your server using the built-in [deploy workflow](.github/workflows/deploy.yml). It takes care of:
 
-1. getting the necessary files on to the server,
+1. getting the latest files on to the server,
 1. (optional) ingesting historical logs, and
 1. bringing up the live system (or reloading it after an update).
 
-The deploy workflow `rsync`s the repo to `/opt/alv` on your server and runs `alv.sh` there. Complete the [Preparation steps](#preparation) below, and then trigger the workflow from the GitHub website, or with the `gh` CLI like so:
+The deploy workflow is run by [GitHub Actions](https://github.com/features/actions). It pulls the latest version of your fork, syncs it to `/opt/alv` on the server, and runs `alv.sh` there. Complete the [Preparation steps](#preparation) below first, and then trigger the workflow from the GitHub website or with the `gh` CLI like so:
 
 ```sh
-gh workflow run deploy.yml -f ingest_history=true  # see "Ingest History" below
+gh workflow run deploy.yml -f ingest_history=true  # see "Ingest History" section
 gh workflow run deploy.yml                         # normal deployment
 ```
 
-Deployment is done from the `main` branch by default. Override by adding `--ref <branch-name>` to the command.
+Notes on using the workflow:
 
-Normal deployment can also be triggered by pushing to the `deploy` branch.
-
-Note that the `workflow run` command only triggers the workflow. While `gh run watch` can be used to view the progress, the website is a much better interface. Open the URL that the `workflow run` command provides to see the workflow result.
+- Deployment is done from the `main` branch by default. Override by adding `--ref <branch-name>` to the command.
+- Normal deployment can also be triggered by pushing to the `deploy` branch, instead of manually running the workflow.
+- The `workflow run` command only triggers the workflow. While `gh run watch` can be used to view the progress, the website is a much better interface. Open the URL that the `workflow run` command provides to see the workflow result.
 
 #### Preparation
 
-Fork the project (so you have your own to run GitHub Actions on) and clone your fork locally. Then setup the fork. The steps are given in detail below, or you can just use the setup script:
+[Fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) the project (so you have your own to run GitHub Actions on) and clone your fork locally. You're then ready to setup the fork.
+
+The manual setup steps are given in detail below, or you can just run the setup script:
 
 ```sh
 ./scripts/setup-fork.sh
 ```
 
-It prompts for your server address, generates an SSH key pair for deployment, sets the GitHub Actions secrets on your fork, and prints a single command that completes the setup on the server. That command runs [scripts/setup-server.sh](scripts/setup-server.sh) **as root** (you may be prompted to authorise `sudo`). Feel free to read the script first. It creates the `alv` user, authorises the deploy key, and creates `/opt/alv`.
+The script prompts for your server address, generates an SSH key pair for deployment, sets the GitHub Actions secrets on your fork, and prints a command that will complete the setup on the server. The printed command runs [scripts/setup-server.sh](scripts/setup-server.sh) **as root** (you may be prompted to authorise `sudo`). Feel free to read the script first. It creates the `alv` user, authorises the deploy key, and creates `/opt/alv`.
 
 Both scripts are safe to re-run.
 
 <details>
-<summary>The manual steps, if you'd rather not run the scripts</summary>
+<summary>The manual setup steps, if you'd rather not run the scripts</summary>
 
 Each step below includes an example command to complete that step. Adjust to suit your environment as required.
 
@@ -133,13 +135,15 @@ Each step below includes an example command to complete that step. Adjust to sui
 
 </details>
 
-### Ingest History
+## Ingest History
 
-To seed the log database with logs from files that have already been rotated, first run `./alv.sh ingest-history` (for a clone deployment) or `gh workflow run deploy.yml -f ingest_history=true` (for a fork deployment). Because logs have to be sequential, this must be done on an empty database. Doing it as the first deployment is ideal.
+Generally a web server's log files are periodically [rotated](https://linux.die.net/man/8/logrotate). `alv` can seed the log database with log files that have already been rotated so you have the history prior to the current log file.
 
-Ingest History concatenates the rotated access and error logs it finds on the server into historical files, and then brings up the system to ingest those files instead of the live logs.
+To do so, first run `./alv.sh ingest-history` (for a clone deployment) or `gh workflow run deploy.yml -f ingest_history=true` (for a fork deployment). Because ingested logs have to be sequential, this must be done on an empty database. Doing it as the first deployment is ideal.
 
-There's no great way to detect the import has finished, so this is a good opportunity to manually look around to see if everything is in order. Verify the three `alv` containers are up and running:
+**Ingest History** concatenates the rotated access and error logs it finds on the server into historical files, and then brings up the system to ingest those files instead of the live logs.
+
+There's no great way to detect the ingestion has finished, so this is a good opportunity to manually look around to see if everything is in order. Verify the three `alv` containers are up and running:
 
 ```sh
 # Must be run on the server
@@ -153,19 +157,19 @@ And poll the line count ingested by VictoriaLogs with something like this, waiti
 curl -sf http://localhost:9428/metrics | grep "^vl_rows_ingested_total"
 ```
 
-Grafana is also accessible at [http://your.server.url:3000](http://your.server.url:3000).
+Grafana can also be accessed during Ingest History by navigating to [http://your.server.url:3000](http://your.server.url:3000).
 
-See the [Troubleshooting section](#troubleshooting) for more suggestions.
+See the [Troubleshooting section](#troubleshooting) for more suggestions on ensuring all is running well.
 
-Once stable, switch to monitoring the live logs with `./alv.sh up` (for a clone deployment) or `gh workflow run deploy.yml` (for a fork deployment). Either way, `alv.sh` will detect that an Ingest History run is underway and **brings the services down first**, which is necessary for the live log files to be read entirely.
+Once the system is stable and ingestion is complete, switch to monitoring the live logs by exeuting `./alv.sh up` (for a clone deployment) or `gh workflow run deploy.yml` (for a fork deployment). In either case, `alv.sh` will detect that an Ingest History run is underway and **brings the services down first**. This is necessary for the live log files to be read entirely.
 
-### Data persistence
+### Data Persistence
 
-Named Docker volumes (`victorialogs-data`, `grafana-data`) survive `docker compose down`. Use `docker compose down -v` to wipe them. After doing so, Ingest History can be run again.
+The log database, log file read marker, and Grafana session state is stored in named Docker volumes (`victorialogs-data` and `grafana-data`). That data survives `docker compose down`. Use `docker compose down -v` to wipe it. After doing so, Ingest History can be run again.
 
 ## Testing
 
-The test environment is what `./demo.sh` runs: generated logs, a local nginx, a traffic generator, and Grafana with anonymous admin access (no login required). For development, its phases can be driven manually. No preparation is required — the test environment uses a bundled [test GeoIP database](https://github.com/maxmind/MaxMind-DB) (Apache 2.0), so no MaxMind account is needed.
+The test environment is what `./demo.sh` runs, including the generated logs, a local nginx, a traffic generator, and Grafana with anonymous admin access. For development, its phases can be driven manually. No preparation is required — the test environment uses a bundled [test GeoIP database](https://github.com/maxmind/MaxMind-DB) (Apache 2.0), so no MaxMind account is needed.
 
 ### Ingest History
 
@@ -211,9 +215,9 @@ python3 generate_error_logs.py    # produces error.log, error.log.1, error.log.2
 
 Both scripts accept `--help` for options (line count, date range, output file).
 
-By default, `generate_access_logs.py` produces 10,000 lines and `generate_error_logs.py` produces 2000 lines. Both sets of logs are spread evenly over four files each - the active log file and three historical log files. Thus the default result is 2500 lines in `access.log` and 7500 lines across the three historical access files, plus 500 lines in `error.log` and 1500 lines across the three historical error files.
+By default, `generate_access_logs.py` produces 10,000 lines and `generate_error_logs.py` produces 2000 lines. Both sets of logs are spread evenly over four files each: the active log file and three historical log files. Thus the default result is 2500 lines in `access.log` and 7500 lines across the three historical access files, plus 500 lines in `error.log` and 1500 lines across the three historical error files.
 
-Most generated client IPs are drawn from the networks present in the bundled test GeoIP database, so the geolocation panels are populated; the mappings are fabricated, but the locations are real.
+Most generated client IPs are drawn from the networks present in the bundled test GeoIP database. So the geolocation panels are populated and the locations are real, although the mappings in the database are fabricated.
 
 ## Troubleshooting
 
