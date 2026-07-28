@@ -1,6 +1,7 @@
 services:
   alloy:
     image: grafana/alloy:v1.17.0
+    restart: unless-stopped
     volumes:
       - ./alloy/config.alloy:/etc/alloy/config.alloy
       - ./alloy/GeoLite2-City.mmdb:/etc/alloy/GeoLite2-City.mmdb:ro
@@ -11,6 +12,7 @@ services:
 
   victorialogs:
     image: victoriametrics/victoria-logs:v1.24.0-victorialogs
+    restart: unless-stopped
     ports:
       - "127.0.0.1:9428:9428"
     volumes:
@@ -21,6 +23,7 @@ services:
 
   grafana:
     image: grafana/grafana:13.1.0
+    restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
