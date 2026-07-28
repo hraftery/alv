@@ -1,3 +1,7 @@
+## v3.1.1
+
+- Automatically restart services on reboot.
+
 ## v3.1.0
 
 - Wait for Grafana to become responsive on "up" commands.
